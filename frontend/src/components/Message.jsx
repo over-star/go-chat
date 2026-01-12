@@ -51,11 +51,11 @@ function Message({ message, isOwn, roomMembers }) {
                         <div className="space-y-2">
                             {!imageError ? (
                                 <img
-                                    src={`http://localhost:8080${message.file_url}`}
+                                    src={`${message.file_url}`}
                                     alt={message.file_name || 'Image'}
                                     className="max-w-xs max-h-96 rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                                     onError={() => setImageError(true)}
-                                    onClick={() => window.open(`http://localhost:8080${message.file_url}`, '_blank')}
+                                    onClick={() => window.open(`${message.file_url}`, '_blank')}
                                 />
                             ) : (
                                 <div className="flex items-center gap-3 p-3 bg-background/20 rounded-lg">
@@ -89,7 +89,7 @@ function Message({ message, isOwn, roomMembers }) {
                                 </p>
                             </div>
                             <a
-                                href={`http://localhost:8080${message.file_url}`}
+                                href={`${message.file_url}`}
                                 download={message.file_name}
                                 className={cn(
                                     "flex items-center justify-center h-8 w-8 rounded-full transition-colors flex-shrink-0",

@@ -162,7 +162,7 @@ No tests currently exist in this codebase. When adding tests:
 Location: `server/.env`
 - `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
 - `JWT_SECRET` (must be changed in production)
-- `SERVER_PORT` (default: 8080)
+- `SERVER_PORT` (default: 8081)
 - `UPLOAD_PATH` (default: ./uploads)
 
 ### CORS
@@ -174,5 +174,5 @@ Frontend origins allowed: `http://localhost:5173`, `http://localhost:3000`
 - WebSocket requires JWT token as query parameter
 - File uploads stored in `server/uploads/` directory
 - All protected API routes require JWT in Authorization header
-- Frontend expects backend at `http://localhost:8080`
+- Frontend expects backend at `http://localhost:8081`
 - Dark mode enabled via Tailwind class strategy

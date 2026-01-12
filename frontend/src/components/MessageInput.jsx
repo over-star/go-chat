@@ -1,14 +1,33 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { messageService } from '../services/messageService'
 import { Send, Paperclip, Image as ImageIcon, Smile, Loader2 } from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
+import EmojiPicker, { Theme, EmojiStyle } from 'emoji-picker-react'
 
 function MessageInput({ onSend, roomMembers }) {
     const [message, setMessage] = useState('')
     const [uploading, setUploading] = useState(false)
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false)
     const fileInputRef = useRef(null)
     const imageInputRef = useRef(null)
+    const emojiPickerRef = useRef(null)
+    const emojiButtonRef = useRef(null)
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target) &&
+                emojiButtonRef.current && !emojiButtonRef.current.contains(event.target)) {
+                setShowEmojiPicker(false)
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [])
+
+    const onEmojiClick = (emojiData) => {
+        setMessage(prev => prev + emojiData.emoji)
+    }
 
     const handleSubmit = (e) => {
         e.preventDefault()
@@ -107,9 +126,42 @@ function MessageInput({ onSend, roomMembers }) {
                         onChange={(e) => setMessage(e.target.value)}
                         onKeyDown={handleKeyDown}
                         placeholder="Type a message..."
-                        className="pr-10"
+                        className="pr-20"
                         disabled={uploading}
                     />
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center">
+                        <Button
+                            ref={emojiButtonRef}
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                            title="Add emoji"
+                        >
+                            <Smile className="h-5 w-5" />
+                        </Button>
+                    </div>
+
+                    {showEmojiPicker && (
+                        <div
+                            ref={emojiPickerRef}
+                            className="absolute bottom-full right-0 mb-2 z-50"
+                        >
+                            <EmojiPicker
+                                onEmojiClick={onEmojiClick}
+                                autoFocusSearch={false}
+                                theme={Theme.AUTO}
+                                emojiStyle={EmojiStyle.NATIVE}
+                                width={350}
+                                height={400}
+                                searchPlaceHolder="Search emoji..."
+                                previewConfig={{
+                                    showPreview: false
+                                }}
+                            />
+                        </div>
+                    )}
                 </div>
 
                 <Button type="submit" size="icon" disabled={!message.trim() || uploading}>

@@ -52,7 +52,7 @@ DB_USER=root
 DB_PASSWORD=your_password
 DB_NAME=chat_db
 JWT_SECRET=your-secret-key
-SERVER_PORT=8080
+SERVER_PORT=8081
 ```
 
 ### Backend Setup
@@ -63,7 +63,7 @@ go mod tidy
 go run main.go
 ```
 
-The server will start on `http://localhost:8080` and automatically create database tables.
+The server will start on `http://localhost:8081` and automatically create database tables.
 
 ### Frontend Setup
 

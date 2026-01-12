@@ -74,7 +74,7 @@ func GetJWTSecret() string {
 
 // GetServerPort returns server port
 func GetServerPort() string {
-	return getEnv("SERVER_PORT", "8080")
+	return getEnv("SERVER_PORT", "8081")
 }
 
 // GetUploadPath returns file upload directory

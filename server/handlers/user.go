@@ -142,7 +142,7 @@ func (h *UserHandler) GetFriends(c *gin.Context) {
 
 	var friendships []models.Friend
 	if err := config.AppConfig.DB.Where("user_id = ? AND status = ?", userID, models.FriendStatusAccepted).
-		Preload("FriendUser").Find(&friendships).Error; err != nil {
+		Preload("FriendUser").Preload("Group").Find(&friendships).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, utils.ErrorResponse(500, "Failed to get friends"))
 		return
 	}

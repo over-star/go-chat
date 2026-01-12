@@ -2,24 +2,33 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { userService } from '../services/userService'
 import { roomService } from '../services/roomService'
+import { friendGroupService } from '../services/friendGroupService'
 import errorHandler from '../utils/errorHandler'
-import { MessageCircle, Users, UserPlus, Search, Plus, LogOut, Hash, Loader2 } from 'lucide-react'
+import {
+    MessageCircle, Users, UserPlus, Search, Plus, LogOut, Hash, Loader2,
+    ChevronDown, ChevronRight, FolderPlus, Trash2, X, MoreVertical, Settings
+} from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { ScrollArea } from './ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 import { cn } from '../lib/utils'
+import CreateRoomModal from './CreateRoomModal'
 
 function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, user }) {
     const { logout } = useAuth()
     const [activeTab, setActiveTab] = useState('rooms')
     const [friends, setFriends] = useState([])
+    const [groups, setGroups] = useState([])
     const [friendRequests, setFriendRequests] = useState([])
     const [searchQuery, setSearchQuery] = useState('')
     const [searchResults, setSearchResults] = useState([])
     const [showCreateRoom, setShowCreateRoom] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [expandedGroups, setExpandedGroups] = useState(new Set(['Ungrouped']))
+    const [isManagingGroups, setIsManagingGroups] = useState(false)
+    const [newGroupName, setNewGroupName] = useState('')
 
     useEffect(() => {
         if (activeTab === 'friends') {
@@ -36,11 +45,51 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, user }) {
 
     const loadFriends = async () => {
         try {
-            const response = await userService.getFriends()
-            if (response.data) setFriends(response.data)
+            const [friendsRes, groupsRes] = await Promise.all([
+                userService.getFriends(),
+                friendGroupService.getGroups()
+            ])
+            if (friendsRes.data) setFriends(friendsRes.data)
+            if (groupsRes.data) setGroups(groupsRes.data)
         } catch (error) {
             // Global handler
         }
+    }
+
+    const handleCreateGroup = async () => {
+        if (!newGroupName.trim()) return
+        try {
+            await friendGroupService.createGroup(newGroupName)
+            setNewGroupName('')
+            loadFriends()
+            errorHandler.success('Group created')
+        } catch (error) { }
+    }
+
+    const handleDeleteGroup = async (id) => {
+        if (!confirm('Are you sure you want to delete this group? Friends in this group will be moved to Ungrouped.')) return
+        try {
+            await friendGroupService.deleteGroup(id)
+            loadFriends()
+            errorHandler.success('Group deleted')
+        } catch (error) { }
+    }
+
+    const handleSetFriendGroup = async (friendId, groupId) => {
+        try {
+            await friendGroupService.setFriendGroup(friendId, groupId ? parseInt(groupId) : null)
+            loadFriends()
+        } catch (error) { }
+    }
+
+    const toggleGroupExpand = (groupName) => {
+        const newExpanded = new Set(expandedGroups)
+        if (newExpanded.has(groupName)) {
+            newExpanded.delete(groupName)
+        } else {
+            newExpanded.add(groupName)
+        }
+        setExpandedGroups(newExpanded)
     }
 
     const loadFriendRequests = async () => {
@@ -148,19 +197,20 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, user }) {
             <ScrollArea className="flex-1">
                 {activeTab === 'rooms' ? (
                     <div className="p-2">
-                        <Button onClick={() => setShowCreateRoom(!showCreateRoom)} className="w-full mb-2">
+                        <Button onClick={() => setShowCreateRoom(true)} className="w-full mb-2">
                             <Plus className="h-4 w-4 mr-2" />
                             New Group Chat
                         </Button>
 
                         {showCreateRoom && (
-                            <CreateRoomForm
+                            <CreateRoomModal
                                 friends={friends}
+                                groups={groups}
                                 onRoomCreated={(room) => {
                                     onRoomCreated(room)
                                     setShowCreateRoom(false)
                                 }}
-                                onCancel={() => setShowCreateRoom(false)}
+                                onClose={() => setShowCreateRoom(false)}
                             />
                         )}
 
@@ -187,12 +237,12 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, user }) {
                         )}
                     </div>
                 ) : (
-                    <div className="p-2">
+                    <div className="p-2 space-y-4">
                         {/* Friend Requests */}
                         {friendRequests.length > 0 && (
-                            <div className="mb-4">
-                                <p className="text-xs font-semibold text-muted-foreground mb-2 px-2">
-                                    FRIEND REQUESTS ({friendRequests.length})
+                            <div>
+                                <p className="text-xs font-semibold text-muted-foreground mb-2 px-2 uppercase tracking-wider">
+                                    Friend Requests ({friendRequests.length})
                                 </p>
                                 <div className="space-y-1">
                                     {friendRequests.map(request => (
@@ -202,7 +252,7 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, user }) {
                                                 <AvatarFallback>{request.user.username[0]}</AvatarFallback>
                                             </Avatar>
                                             <span className="flex-1 text-sm truncate">{request.user.username}</span>
-                                            <Button size="sm" onClick={() => handleAcceptFriend(request.user.id)}>
+                                            <Button size="sm" className="h-7 px-2 text-xs" onClick={() => handleAcceptFriend(request.user.id)}>
                                                 Accept
                                             </Button>
                                         </div>
@@ -212,7 +262,7 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, user }) {
                         )}
 
                         {/* Search */}
-                        <div className="mb-4">
+                        <div className="px-1">
                             <div className="relative">
                                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                                 <Input
@@ -226,13 +276,13 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, user }) {
                             {searchResults.length > 0 && (
                                 <div className="mt-2 space-y-1">
                                     {searchResults.map(searchUser => (
-                                        <div key={searchUser.id} className="flex items-center gap-2 p-2 rounded-md hover:bg-accent">
+                                        <div key={searchUser.id} className="flex items-center gap-2 p-2 rounded-md hover:bg-accent border border-dashed">
                                             <Avatar className="h-8 w-8">
                                                 <AvatarImage src={searchUser.avatar} />
                                                 <AvatarFallback>{searchUser.username[0]}</AvatarFallback>
                                             </Avatar>
                                             <span className="flex-1 text-sm truncate">{searchUser.username}</span>
-                                            <Button variant="ghost" size="icon" onClick={() => handleAddFriend(searchUser.id)}>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleAddFriend(searchUser.id)}>
                                                 <UserPlus className="h-4 w-4" />
                                             </Button>
                                         </div>
@@ -241,27 +291,101 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, user }) {
                             )}
                         </div>
 
-                        {/* Friends List */}
-                        <div>
-                            <p className="text-xs font-semibold text-muted-foreground mb-2 px-2">
-                                FRIENDS ({friends.length})
+                        {/* Groups Management Toggle */}
+                        <div className="flex items-center justify-between px-2">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                Friends
                             </p>
-                            <div className="space-y-1">
-                                {friends.map(friend => (
-                                    <div
-                                        key={friend.id}
-                                        onClick={() => handleStartPrivateChat(friend)}
-                                        className="flex items-center gap-2 p-2 rounded-md hover:bg-accent cursor-pointer"
-                                    >
-                                        <Avatar className="h-8 w-8">
-                                            <AvatarImage src={friend.friend.avatar} />
-                                            <AvatarFallback>{friend.friend.username[0]}</AvatarFallback>
-                                        </Avatar>
-                                        <span className="flex-1 text-sm truncate">{friend.friend.username}</span>
-                                        <MessageCircle className="h-4 w-4 text-muted-foreground" />
-                                    </div>
-                                ))}
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className={cn("h-6 w-6", isManagingGroups && "text-primary")}
+                                onClick={() => setIsManagingGroups(!isManagingGroups)}
+                            >
+                                <Settings className="h-3.5 w-3.5" />
+                            </Button>
+                        </div>
+
+                        {isManagingGroups && (
+                            <div className="px-2 pb-2 border rounded-md bg-muted/30 space-y-2 py-2">
+                                <div className="flex gap-1">
+                                    <Input
+                                        placeholder="New group name"
+                                        value={newGroupName}
+                                        onChange={(e) => setNewGroupName(e.target.value)}
+                                        className="h-7 text-xs"
+                                        onKeyDown={(e) => e.key === 'Enter' && handleCreateGroup()}
+                                    />
+                                    <Button size="icon" className="h-7 w-7 shrink-0" onClick={handleCreateGroup}>
+                                        <Plus className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                                <div className="space-y-1">
+                                    {groups.map(group => (
+                                        <div key={group.id} className="flex items-center justify-between text-xs p-1 rounded hover:bg-accent">
+                                            <span className="truncate">{group.name}</span>
+                                            <Button variant="ghost" size="icon" className="h-5 w-5 text-destructive" onClick={() => handleDeleteGroup(group.id)}>
+                                                <Trash2 className="h-3 w-3" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
+                        )}
+
+                        {/* Friends List with Groups */}
+                        <div className="space-y-1">
+                            {/* Grouped Friends */}
+                            {groups.map(group => {
+                                const groupFriends = friends.filter(f => f.group_id === group.id)
+                                return (
+                                    <div key={group.id} className="space-y-1">
+                                        <button
+                                            onClick={() => toggleGroupExpand(group.name)}
+                                            className="flex items-center gap-1 w-full text-left text-[11px] font-bold text-muted-foreground hover:text-foreground transition-colors py-1 px-2"
+                                        >
+                                            {expandedGroups.has(group.name) ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                                            {group.name.toUpperCase()} ({groupFriends.length})
+                                        </button>
+
+                                        {expandedGroups.has(group.name) && groupFriends.map(friend => (
+                                            <FriendItem
+                                                key={friend.id}
+                                                friend={friend}
+                                                groups={groups}
+                                                onStartChat={() => handleStartPrivateChat(friend)}
+                                                onMoveToGroup={handleSetFriendGroup}
+                                            />
+                                        ))}
+                                    </div>
+                                )
+                            })}
+
+                            {/* Ungrouped Friends */}
+                            {(() => {
+                                const ungrouped = friends.filter(f => !f.group_id)
+                                return (
+                                    <div className="space-y-1">
+                                        <button
+                                            onClick={() => toggleGroupExpand('Ungrouped')}
+                                            className="flex items-center gap-1 w-full text-left text-[11px] font-bold text-muted-foreground hover:text-foreground transition-colors py-1 px-2"
+                                        >
+                                            {expandedGroups.has('Ungrouped') ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                                            UNGROUPED ({ungrouped.length})
+                                        </button>
+
+                                        {expandedGroups.has('Ungrouped') && ungrouped.map(friend => (
+                                            <FriendItem
+                                                key={friend.id}
+                                                friend={friend}
+                                                groups={groups}
+                                                onStartChat={() => handleStartPrivateChat(friend)}
+                                                onMoveToGroup={handleSetFriendGroup}
+                                            />
+                                        ))}
+                                    </div>
+                                )
+                            })()}
                         </div>
                     </div>
                 )}
@@ -305,76 +429,32 @@ function RoomItem({ room, isSelected, onClick }) {
     )
 }
 
-function CreateRoomForm({ friends, onRoomCreated, onCancel }) {
-    const [roomName, setRoomName] = useState('')
-    const [selectedFriends, setSelectedFriends] = useState([])
-    const [loading, setLoading] = useState(false)
-
-    const handleSubmit = async (e) => {
-        e.preventDefault()
-        if (!roomName.trim() || selectedFriends.length === 0) return
-
-        try {
-            setLoading(true)
-            const response = await roomService.createRoom(roomName, 'group', selectedFriends)
-            if (response.data) {
-                onRoomCreated(response.data)
-                errorHandler.success('Group chat created')
-            }
-        } catch (error) {
-            // Global handler
-        } finally {
-            setLoading(false)
-        }
-    }
-
+function FriendItem({ friend, onStartChat, groups, onMoveToGroup }) {
     return (
-        <div className="bg-accent p-3 rounded-lg mb-2">
-            <form onSubmit={handleSubmit} className="space-y-3">
-                <Input
-                    placeholder="Room name"
-                    value={roomName}
-                    onChange={(e) => setRoomName(e.target.value)}
-                    className="h-9"
-                />
+        <div className="group flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer">
+            <div className="flex flex-1 items-center gap-2 min-w-0" onClick={onStartChat}>
+                <Avatar className="h-8 w-8">
+                    <AvatarImage src={friend.friend.avatar} />
+                    <AvatarFallback>{friend.friend.username[0]}</AvatarFallback>
+                </Avatar>
+                <span className="flex-1 text-sm truncate">{friend.friend.username}</span>
+            </div>
 
-                <div>
-                    <p className="text-xs text-muted-foreground mb-2">Select members:</p>
-                    <ScrollArea className="h-32">
-                        <div className="space-y-1">
-                            {friends.map(friend => (
-                                <label key={friend.id} className="flex items-center gap-2 p-2 rounded hover:bg-background cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedFriends.includes(friend.friend.id)}
-                                        onChange={(e) => {
-                                            if (e.target.checked) {
-                                                setSelectedFriends([...selectedFriends, friend.friend.id])
-                                            } else {
-                                                setSelectedFriends(selectedFriends.filter(id => id !== friend.friend.id))
-                                            }
-                                        }}
-                                    />
-                                    <Avatar className="h-6 w-6">
-                                        <AvatarImage src={friend.friend.avatar} />
-                                        <AvatarFallback className="text-xs">{friend.friend.username[0]}</AvatarFallback>
-                                    </Avatar>
-                                    <span className="text-sm">{friend.friend.username}</span>
-                                </label>
-                            ))}
-                        </div>
-                    </ScrollArea>
-                </div>
-
-                <div className="flex gap-2">
-                    <Button type="submit" disabled={loading} className="flex-1 h-9">
-                        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create'}
-                    </Button>
-                    <Button type="button" variant="outline" onClick={onCancel} className="flex-1 h-9">
-                        Cancel
-                    </Button>
-                </div>
-            </form>
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <select
+                    className="text-[10px] bg-background border rounded px-1 h-5 w-20 outline-none"
+                    value={friend.group_id || ''}
+                    onChange={(e) => onMoveToGroup(friend.friend.id, e.target.value || null)}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <option value="">Move to...</option>
+                    <option value="">None</option>
+                    {groups.map(g => (
+                        <option key={g.id} value={g.id}>{g.name}</option>
+                    ))}
+                </select>
+                <MessageCircle className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" onClick={(e) => { e.stopPropagation(); onStartChat(); }} />
+            </div>
         </div>
     )
 }

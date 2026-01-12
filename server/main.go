@@ -36,6 +36,7 @@ func main() {
 		&models.Room{},
 		&models.Message{},
 		&models.Friend{},
+		&models.FriendGroup{},
 		&models.ReadReceipt{},
 	); err != nil {
 		log.Fatalf("Failed to migrate database: %v", err)
@@ -73,6 +74,7 @@ func main() {
 	userHandler := handlers.NewUserHandler()
 	roomHandler := handlers.NewRoomHandler()
 	messageHandler := handlers.NewMessageHandler()
+	friendGroupHandler := handlers.NewFriendGroupHandler()
 	wsHandler := handlers.NewWebSocketHandler(hub)
 
 	// Public routes
@@ -94,6 +96,13 @@ func main() {
 		protected.POST("/users/friends", userHandler.AddFriend)
 		protected.POST("/users/friends/accept", userHandler.AcceptFriend)
 		protected.DELETE("/users/friends/:id", userHandler.RemoveFriend)
+
+		// Friend group routes
+		protected.GET("/friend-groups", friendGroupHandler.GetGroups)
+		protected.POST("/friend-groups", friendGroupHandler.CreateGroup)
+		protected.PUT("/friend-groups/:id", friendGroupHandler.UpdateGroup)
+		protected.DELETE("/friend-groups/:id", friendGroupHandler.DeleteGroup)
+		protected.POST("/users/friends/set-group", friendGroupHandler.SetFriendGroup)
 
 		// Room routes
 		protected.POST("/rooms", roomHandler.CreateRoom)

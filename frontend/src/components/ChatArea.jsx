@@ -128,16 +128,17 @@ function ChatArea({ room, onToggleInfo, showRoomInfo, onMessagesRead }) {
         try {
             setLoading(true)
             const response = await messageService.getMessages(room.id, pageNum, 20)
-            if (response.data?.messages) {
-                const newMessages = response.data.messages
+            if (response.data) {
+                // Backend returns messages newest first (DESC), but we want them ASC for display
+                const newMessages = [...response.data].reverse()
 
                 if (isInitial) {
                     setMessages(newMessages)
-                    setHasMore(newMessages.length === 20)
+                    setHasMore(response.data.length === 20)
                     setTimeout(scrollToBottom, 100)
                 } else {
                     setMessages(prev => [...newMessages, ...prev])
-                    setHasMore(newMessages.length === 20)
+                    setHasMore(response.data.length === 20)
                 }
             }
         } catch (error) {
@@ -157,12 +158,13 @@ function ChatArea({ room, onToggleInfo, showRoomInfo, onMessagesRead }) {
             const previousScrollHeight = scrollContainer?.scrollHeight || 0
 
             const response = await messageService.getMessages(room.id, nextPage, 20)
-            if (response.data?.messages) {
-                const newMessages = response.data.messages
+            if (response.data) {
+                // Reverse older messages to maintain ASC order in state
+                const newMessages = [...response.data].reverse()
                 if (newMessages.length > 0) {
                     setMessages(prev => [...newMessages, ...prev])
                     setPage(nextPage)
-                    setHasMore(newMessages.length === 20)
+                    setHasMore(response.data.length === 20)
 
                     // Maintain scroll position
                     setTimeout(() => {
@@ -185,7 +187,7 @@ function ChatArea({ room, onToggleInfo, showRoomInfo, onMessagesRead }) {
     const markMessagesAsRead = async () => {
         if (!room) return
 
-        const unreadMessages = messages.filter(m => m.sender_id !== user?.id)
+        const unreadMessages = messages.filter(m => m.sender?.id !== user?.id)
         if (unreadMessages.length > 0) {
             try {
                 const messageIds = unreadMessages.map(m => m.id)
@@ -281,7 +283,7 @@ function ChatArea({ room, onToggleInfo, showRoomInfo, onMessagesRead }) {
                             <Message
                                 key={message.id}
                                 message={message}
-                                isOwn={message.sender_id === user?.id}
+                                isOwn={message.sender?.id === user?.id}
                                 roomMembers={room.members || []}
                             />
                         ))}

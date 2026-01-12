@@ -23,7 +23,21 @@ function Chat() {
 
     useEffect(() => {
         if (isAuthenticated) {
-            loadRooms()
+            loadRooms().then((loadedRooms) => {
+                if (loadedRooms && loadedRooms.length > 0) {
+                    const savedRoomId = localStorage.getItem('lastRoomId')
+                    if (savedRoomId) {
+                        const room = loadedRooms.find(r => r.id.toString() === savedRoomId)
+                        if (room) {
+                            setSelectedRoom(room)
+                        } else {
+                            setSelectedRoom(loadedRooms[0])
+                        }
+                    } else {
+                        setSelectedRoom(loadedRooms[0])
+                    }
+                }
+            })
         }
     }, [isAuthenticated])
 
@@ -32,16 +46,21 @@ function Chat() {
             const response = await roomService.getRooms()
             if (response.data) {
                 setRooms(response.data)
+                return response.data
             }
         } catch (error) {
             // Global error handler will show toast
         } finally {
             setLoadingRooms(false)
         }
+        return null
     }
 
     const handleRoomSelect = (room) => {
         setSelectedRoom(room)
+        if (room) {
+            localStorage.setItem('lastRoomId', room.id.toString())
+        }
         markRoomAsRead(room.id)
     }
 
@@ -62,17 +81,35 @@ function Chat() {
         if (existingRoom) {
             // Room already exists, just select it
             setSelectedRoom(existingRoom)
+            localStorage.setItem('lastRoomId', existingRoom.id.toString())
         } else {
             // New room, add to list and select
             setRooms(prev => [newRoom, ...prev])
             setSelectedRoom(newRoom)
+            localStorage.setItem('lastRoomId', newRoom.id.toString())
         }
     }
 
     const handleRoomDeleted = (roomId) => {
-        setRooms(prev => prev.filter(r => r.id !== roomId))
-        if (selectedRoom?.id === roomId) {
-            setSelectedRoom(rooms[0] || null)
+        setRooms(prev => {
+            const filtered = prev.filter(r => r.id !== roomId)
+            if (selectedRoom?.id === roomId) {
+                const nextRoom = filtered[0] || null
+                setSelectedRoom(nextRoom)
+                if (nextRoom) {
+                    localStorage.setItem('lastRoomId', nextRoom.id.toString())
+                } else {
+                    localStorage.removeItem('lastRoomId')
+                }
+            }
+            return filtered
+        })
+    }
+
+    const handleRoomUpdated = (updatedRoom) => {
+        setRooms(prev => prev.map(r => r.id === updatedRoom.id ? updatedRoom : r))
+        if (selectedRoom?.id === updatedRoom.id) {
+            setSelectedRoom(updatedRoom)
         }
     }
 
@@ -92,6 +129,7 @@ function Chat() {
                 selectedRoom={selectedRoom}
                 onRoomSelect={handleRoomSelect}
                 onRoomCreated={handleRoomCreated}
+                onRoomDeleted={handleRoomDeleted}
                 user={user}
             />
 
@@ -111,6 +149,7 @@ function Chat() {
                     room={selectedRoom}
                     onClose={() => setShowRoomInfo(false)}
                     onRoomDeleted={handleRoomDeleted}
+                    onRoomUpdated={handleRoomUpdated}
                 />
             )}
         </div>

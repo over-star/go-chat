@@ -14,12 +14,36 @@ export const ErrorType = {
 }
 
 /**
+ * Error codes from backend
+ */
+export const BackendErrorCode = {
+    INTERNAL_ERROR: 10001,
+    INVALID_PARAMS: 10002,
+    UNAUTHORIZED: 10003,
+    NOT_FOUND: 10004,
+    ALREADY_EXISTS: 10005,
+}
+
+const backendErrorMessages = {
+    [BackendErrorCode.INTERNAL_ERROR]: '服务器内部错误，请稍后再试',
+    [BackendErrorCode.INVALID_PARAMS]: '参数请求错误',
+    [BackendErrorCode.UNAUTHORIZED]: '用户名或密码错误',
+    [BackendErrorCode.NOT_FOUND]: '请求的资源未找到',
+    [BackendErrorCode.ALREADY_EXISTS]: '资源已存在',
+}
+
+/**
  * Extract error message from various error formats
  */
 const extractErrorMessage = (error) => {
     // Check if it's an axios error
     if (error.response) {
         const { data, status } = error.response
+
+        // Check for backend specific error codes first
+        if (data?.code && backendErrorMessages[data.code]) {
+            return backendErrorMessages[data.code]
+        }
 
         // Check for custom error message in response
         if (data?.message) {

@@ -20,20 +20,18 @@ function Message({ message, isOwn, roomMembers }) {
     const hasBeenRead = message.read_by && message.read_by.length > 0
 
     return (
-        <div className={cn("flex gap-3", isOwn && "flex-row-reverse")}>
-            {!isOwn && (
-                <Avatar className="h-8 w-8">
-                    <AvatarImage src={message.sender?.avatar} />
-                    <AvatarFallback>{message.sender?.username?.[0]}</AvatarFallback>
-                </Avatar>
-            )}
+        <div className={cn("flex gap-3 mb-4", isOwn && "flex-row-reverse")}>
+            <Avatar className="h-9 w-9 mt-1 flex-shrink-0">
+                <AvatarImage src={message.sender?.avatar} />
+                <AvatarFallback className={cn(isOwn ? "bg-primary text-primary-foreground" : "bg-muted")}>
+                    {message.sender?.username?.[0]?.toUpperCase()}
+                </AvatarFallback>
+            </Avatar>
 
-            <div className={cn("flex flex-col max-w-[70%]", isOwn && "items-end")}>
-                {!isOwn && (
-                    <span className="text-xs font-medium text-muted-foreground mb-1 px-1">
-                        {message.sender?.username}
-                    </span>
-                )}
+            <div className={cn("flex flex-col max-w-[75%]", isOwn && "items-end")}>
+                <span className="text-xs font-medium text-muted-foreground mb-1 px-1">
+                    {message.sender?.username}
+                </span>
 
                 <div
                     className={cn(
@@ -51,11 +49,11 @@ function Message({ message, isOwn, roomMembers }) {
                         <div className="space-y-2">
                             {!imageError ? (
                                 <img
-                                    src={`http://localhost:8080${message.file_url}`}
+                                    src={`${message.file_url}`}
                                     alt={message.file_name || 'Image'}
                                     className="max-w-xs max-h-96 rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                                     onError={() => setImageError(true)}
-                                    onClick={() => window.open(`http://localhost:8080${message.file_url}`, '_blank')}
+                                    onClick={() => window.open(`${message.file_url}`, '_blank')}
                                 />
                             ) : (
                                 <div className="flex items-center gap-3 p-3 bg-background/20 rounded-lg">
@@ -89,7 +87,7 @@ function Message({ message, isOwn, roomMembers }) {
                                 </p>
                             </div>
                             <a
-                                href={`http://localhost:8080${message.file_url}`}
+                                href={`${message.file_url}`}
                                 download={message.file_name}
                                 className={cn(
                                     "flex items-center justify-center h-8 w-8 rounded-full transition-colors flex-shrink-0",

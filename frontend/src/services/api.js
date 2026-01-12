@@ -42,9 +42,11 @@ api.interceptors.response.use(
             }
         }
 
-        // Let component handle specific errors if needed, otherwise global handler catches it
-        // We reject the promise so components can do custom handling if they want
-        // But we attach a flag indicating if it was already handled globally (optional logic)
+        // Show error toast for other errors
+        if (error.response?.status !== 401 || 
+            (window.location.pathname.includes('/login') || window.location.pathname.includes('/register'))) {
+            errorHandler.error(error)
+        }
 
         return Promise.reject(error)
     }

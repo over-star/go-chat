@@ -29,4 +29,16 @@ export const roomService = {
         const response = await api.delete(`/rooms/${roomId}`)
         return response.data
     },
+
+    addMembers: async (roomId, memberIds) => {
+        const response = await api.post(`/rooms/${roomId}/members`, {
+            member_ids: memberIds,
+        })
+        return response.data
+    },
+
+    removeMember: async (roomId, userId) => {
+        const response = await api.delete(`/rooms/${roomId}/members/${userId}`)
+        return response.data
+    },
 }

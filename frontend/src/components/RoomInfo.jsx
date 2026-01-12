@@ -1,13 +1,16 @@
 import { useState } from 'react'
 import { roomService } from '../services/roomService'
 import errorHandler from '../utils/errorHandler'
-import { X, Users, Crown, LogOut, Trash2, Loader2 } from 'lucide-react'
+import { X, Users, Crown, LogOut, Trash2, Loader2, UserMinus } from 'lucide-react'
 import { Button } from './ui/button'
 import { ScrollArea } from './ui/scroll-area'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
+import { useAuth } from '../context/AuthContext'
 
-function RoomInfo({ room, onClose, onRoomDeleted }) {
+function RoomInfo({ room, onClose, onRoomDeleted, onRoomUpdated }) {
+    const { user: currentUser } = useAuth()
     const [loading, setLoading] = useState(false)
+    const isCreator = currentUser?.id === room.creator_id
 
     const handleLeaveRoom = async () => {
         if (!confirm('Are you sure you want to leave this room?')) return
@@ -34,6 +37,25 @@ function RoomInfo({ room, onClose, onRoomDeleted }) {
             onRoomDeleted(room.id)
             onClose()
             errorHandler.success('Room deleted successfully')
+        } catch (error) {
+            // Global handler
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleRemoveMember = async (userId) => {
+        if (!confirm('Are you sure you want to remove this member?')) return
+
+        try {
+            setLoading(true)
+            await roomService.removeMember(room.id, userId)
+            errorHandler.success('Member removed')
+            if (onRoomUpdated) {
+                // Fetch updated room info
+                const response = await roomService.getRoom(room.id)
+                onRoomUpdated(response.data)
+            }
         } catch (error) {
             // Global handler
         } finally {
@@ -76,7 +98,7 @@ function RoomInfo({ room, onClose, onRoomDeleted }) {
 
                             <div className="space-y-2">
                                 {room.members.map(member => (
-                                    <div key={member.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent">
+                                    <div key={member.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent group">
                                         <Avatar className="h-10 w-10">
                                             <AvatarImage src={member.avatar} />
                                             <AvatarFallback>{member.username[0]}</AvatarFallback>
@@ -90,6 +112,17 @@ function RoomInfo({ room, onClose, onRoomDeleted }) {
                                             </div>
                                             <p className="text-xs text-muted-foreground">{member.email}</p>
                                         </div>
+                                        {isCreator && member.id !== room.creator_id && (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                                                onClick={() => handleRemoveMember(member.id)}
+                                                disabled={loading}
+                                            >
+                                                <UserMinus className="h-4 w-4" />
+                                            </Button>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -135,7 +168,7 @@ function RoomInfo({ room, onClose, onRoomDeleted }) {
                 )}
 
                 {/* Only creator can delete */}
-                {room.type === 'group' && (
+                {isCreator && room.type === 'group' && (
                     <Button
                         variant="destructive"
                         className="w-full justify-start"

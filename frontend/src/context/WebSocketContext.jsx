@@ -38,8 +38,8 @@ export const WebSocketProvider = ({ children }) => {
             return
         }
 
-        const wsProtocol = 'ws:'
-        const wsUrl = `${wsProtocol}//localhost:8080/ws?user_id=${user.id}&token=${token}`
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws?user_id=${user.id}&token=${token}`
 
         const ws = new WebSocket(wsUrl)
 

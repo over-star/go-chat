@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { useAuth } from './AuthContext'
+import errorHandler from '../utils/errorHandler'
 
 const WebSocketContext = createContext(null)
 
@@ -15,6 +16,7 @@ export const WebSocketProvider = ({ children }) => {
     const { user, token, isAuthenticated } = useAuth()
     const [isConnected, setIsConnected] = useState(false)
     const [messages, setMessages] = useState([])
+    const [lastMessage, setLastMessage] = useState(null)
     const wsRef = useRef(null)
     const reconnectTimeoutRef = useRef(null)
     const messageHandlersRef = useRef([])
@@ -29,19 +31,22 @@ export const WebSocketProvider = ({ children }) => {
         }
     }, [isAuthenticated, user, token])
 
+
+
     const connectWebSocket = () => {
         if (wsRef.current?.readyState === WebSocket.OPEN) {
             return
         }
 
-        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-        const wsUrl = `${wsProtocol}//${window.location.host}/ws?user_id=${user.id}&token=${token}`
+        const wsProtocol = 'ws:'
+        const wsUrl = `${wsProtocol}//localhost:8080/ws?user_id=${user.id}&token=${token}`
 
         const ws = new WebSocket(wsUrl)
 
         ws.onopen = () => {
             console.log('WebSocket connected')
             setIsConnected(true)
+            errorHandler.success('Connected to chat server', { id: 'ws-status' })
         }
 
         ws.onmessage = (event) => {
@@ -54,6 +59,9 @@ export const WebSocketProvider = ({ children }) => {
                 // Store message if it's a chat message
                 if (data.type === 'message' && data.data?.message) {
                     setMessages(prev => [...prev, data.data.message])
+                    setLastMessage(data)
+                } else {
+                    setLastMessage(data)
                 }
             } catch (error) {
                 console.error('Error parsing WebSocket message:', error)
@@ -62,18 +70,26 @@ export const WebSocketProvider = ({ children }) => {
 
         ws.onerror = (error) => {
             console.error('WebSocket error:', error)
+            setIsConnected(false)
+            // Note: browser WebSocket API doesn't give error details for security reasons
+            errorHandler.error(error, 'Connection error', { id: 'ws-error' })
         }
 
-        ws.onclose = () => {
-            console.log('WebSocket disconnected')
+        ws.onclose = (event) => {
+            console.log('WebSocket disconnected', event)
             setIsConnected(false)
 
-            // Attempt to reconnect after 3 seconds
-            if (isAuthenticated) {
+            // Only attempt reconnect if not closing cleanly/intentionally
+            // 1000 is normal closure
+            if (isAuthenticated && event.code !== 1000) {
+                errorHandler.loading('Reconnecting to server...', { id: 'ws-status' })
+
                 reconnectTimeoutRef.current = setTimeout(() => {
                     console.log('Attempting to reconnect...')
                     connectWebSocket()
                 }, 3000)
+            } else if (event.code !== 1000) {
+                errorHandler.error(null, 'Disconnected from server', { id: 'ws-status' })
             }
         }
 
@@ -144,6 +160,7 @@ export const WebSocketProvider = ({ children }) => {
     const value = {
         isConnected,
         messages,
+        lastMessage,
         sendMessage,
         sendChatMessage,
         sendTyping,

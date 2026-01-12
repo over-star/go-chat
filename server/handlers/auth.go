@@ -36,21 +36,21 @@ type AuthResponse struct {
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, utils.ErrorResponse(400, err.Error()))
+		c.JSON(http.StatusBadRequest, utils.DetailedErrorResponse(400, "Validation failed", utils.ErrCodeValidation, err.Error()))
 		return
 	}
 
 	// Check if user already exists
 	var existingUser models.User
 	if err := config.AppConfig.DB.Where("username = ? OR email = ?", req.Username, req.Email).First(&existingUser).Error; err == nil {
-		c.JSON(http.StatusConflict, utils.ErrorResponse(409, "Username or email already exists"))
+		c.JSON(http.StatusConflict, utils.DetailedErrorResponse(409, "Username or email already exists", utils.ErrCodeConflict, nil))
 		return
 	}
 
 	// Hash password
 	hashedPassword, err := utils.HashPassword(req.Password)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, utils.ErrorResponse(500, "Failed to hash password"))
+		c.JSON(http.StatusInternalServerError, utils.DetailedErrorResponse(500, "Failed to hash password", utils.ErrCodeServer, nil))
 		return
 	}
 
@@ -63,14 +63,14 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 
 	if err := config.AppConfig.DB.Create(&user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, utils.ErrorResponse(500, "Failed to create user"))
+		c.JSON(http.StatusInternalServerError, utils.DetailedErrorResponse(500, "Failed to create user", utils.ErrCodeServer, nil))
 		return
 	}
 
 	// Generate token
 	token, err := utils.GenerateToken(user.ID, user.Username, config.GetJWTSecret())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, utils.ErrorResponse(500, "Failed to generate token"))
+		c.JSON(http.StatusInternalServerError, utils.DetailedErrorResponse(500, "Failed to generate token", utils.ErrCodeServer, nil))
 		return
 	}
 
@@ -84,20 +84,20 @@ func (h *AuthHandler) Register(c *gin.Context) {
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, utils.ErrorResponse(400, err.Error()))
+		c.JSON(http.StatusBadRequest, utils.DetailedErrorResponse(400, "Invalid request body", utils.ErrCodeValidation, err.Error()))
 		return
 	}
 
 	// Find user by username or email
 	var user models.User
 	if err := config.AppConfig.DB.Where("username = ? OR email = ?", req.Username, req.Username).First(&user).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, utils.ErrorResponse(401, "Invalid credentials"))
+		c.JSON(http.StatusUnauthorized, utils.DetailedErrorResponse(401, "Invalid credentials", utils.ErrCodeAuth, nil))
 		return
 	}
 
 	// Check password
 	if !utils.CheckPassword(user.Password, req.Password) {
-		c.JSON(http.StatusUnauthorized, utils.ErrorResponse(401, "Invalid credentials"))
+		c.JSON(http.StatusUnauthorized, utils.DetailedErrorResponse(401, "Invalid credentials", utils.ErrCodeAuth, nil))
 		return
 	}
 

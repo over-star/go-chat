@@ -1,11 +1,20 @@
-import { File, Image as ImageIcon, Check, CheckCheck } from 'lucide-react'
+import { File, Image as ImageIcon, Check, CheckCheck, Download } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 import { cn } from '../lib/utils'
+import { useState } from 'react'
 
 function Message({ message, isOwn, roomMembers }) {
+    const [imageError, setImageError] = useState(false)
+
     const formatTime = (timestamp) => {
         const date = new Date(timestamp)
         return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    }
+
+    const formatFileSize = (bytes) => {
+        if (bytes < 1024) return bytes + ' B'
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
     }
 
     const hasBeenRead = message.read_by && message.read_by.length > 0
@@ -39,12 +48,24 @@ function Message({ message, isOwn, roomMembers }) {
                     )}
 
                     {message.type === 'image' && (
-                        <div>
-                            <img
-                                src={`http://localhost:8080${message.file_url}`}
-                                alt={message.file_name}
-                                className="max-w-sm rounded-lg mb-2"
-                            />
+                        <div className="space-y-2">
+                            {!imageError ? (
+                                <img
+                                    src={`http://localhost:8080${message.file_url}`}
+                                    alt={message.file_name || 'Image'}
+                                    className="max-w-xs max-h-96 rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                                    onError={() => setImageError(true)}
+                                    onClick={() => window.open(`http://localhost:8080${message.file_url}`, '_blank')}
+                                />
+                            ) : (
+                                <div className="flex items-center gap-3 p-3 bg-background/20 rounded-lg">
+                                    <ImageIcon className="h-8 w-8" />
+                                    <div className="flex-1">
+                                        <p className="text-sm font-medium">Image unavailable</p>
+                                        <p className="text-xs opacity-70">{message.file_name}</p>
+                                    </div>
+                                </div>
+                            )}
                             {message.content && (
                                 <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                             )}
@@ -52,22 +73,34 @@ function Message({ message, isOwn, roomMembers }) {
                     )}
 
                     {message.type === 'file' && (
-                        <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-lg bg-background/20 flex items-center justify-center">
-                                <File className="h-5 w-5" />
+                        <div className="flex items-center gap-3 min-w-[250px]">
+                            <div className={cn(
+                                "h-12 w-12 rounded-lg flex items-center justify-center flex-shrink-0",
+                                isOwn ? "bg-primary-foreground/20" : "bg-background/50"
+                            )}>
+                                <File className="h-6 w-6" />
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">{message.file_name}</p>
+                                <p className="text-sm font-medium truncate" title={message.file_name}>
+                                    {message.file_name}
+                                </p>
                                 <p className="text-xs opacity-70">
-                                    {(message.file_size / 1024).toFixed(1)} KB
+                                    {formatFileSize(message.file_size)}
                                 </p>
                             </div>
                             <a
                                 href={`http://localhost:8080${message.file_url}`}
                                 download={message.file_name}
-                                className="text-xs underline"
+                                className={cn(
+                                    "flex items-center justify-center h-8 w-8 rounded-full transition-colors flex-shrink-0",
+                                    isOwn
+                                        ? "hover:bg-primary-foreground/20"
+                                        : "hover:bg-background/50"
+                                )}
+                                onClick={(e) => e.stopPropagation()}
+                                title="Download file"
                             >
-                                Download
+                                <Download className="h-4 w-4" />
                             </a>
                         </div>
                     )}

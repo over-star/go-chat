@@ -32,12 +32,9 @@ function Chat() {
             const response = await roomService.getRooms()
             if (response.data) {
                 setRooms(response.data)
-                if (response.data.length > 0 && !selectedRoom) {
-                    setSelectedRoom(response.data[0])
-                }
             }
         } catch (error) {
-            console.error('Failed to load rooms:', error)
+            // Global error handler will show toast
         } finally {
             setLoadingRooms(false)
         }
@@ -45,11 +42,31 @@ function Chat() {
 
     const handleRoomSelect = (room) => {
         setSelectedRoom(room)
+        markRoomAsRead(room.id)
+    }
+
+    const markRoomAsRead = (roomId) => {
+        setRooms(prev => prev.map(r =>
+            r.id === roomId ? { ...r, unread_count: 0 } : r
+        ))
+    }
+
+    const handleMessagesRead = (roomId) => {
+        markRoomAsRead(roomId)
+        loadRooms()
     }
 
     const handleRoomCreated = (newRoom) => {
-        setRooms(prev => [newRoom, ...prev])
-        setSelectedRoom(newRoom)
+        // Check if room already exists (e.g., private chat room)
+        const existingRoom = rooms.find(r => r.id === newRoom.id)
+        if (existingRoom) {
+            // Room already exists, just select it
+            setSelectedRoom(existingRoom)
+        } else {
+            // New room, add to list and select
+            setRooms(prev => [newRoom, ...prev])
+            setSelectedRoom(newRoom)
+        }
     }
 
     const handleRoomDeleted = (roomId) => {
@@ -84,6 +101,7 @@ function Chat() {
                     room={selectedRoom}
                     onToggleInfo={() => setShowRoomInfo(!showRoomInfo)}
                     showRoomInfo={showRoomInfo}
+                    onMessagesRead={handleMessagesRead}
                 />
             </div>
 

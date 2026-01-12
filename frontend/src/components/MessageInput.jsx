@@ -8,6 +8,7 @@ function MessageInput({ onSend, roomMembers }) {
     const [message, setMessage] = useState('')
     const [uploading, setUploading] = useState(false)
     const fileInputRef = useRef(null)
+    const imageInputRef = useRef(null)
 
     const handleSubmit = (e) => {
         e.preventDefault()
@@ -17,7 +18,7 @@ function MessageInput({ onSend, roomMembers }) {
         }
     }
 
-    const handleFileUpload = async (e) => {
+    const handleFileUpload = async (e, type = 'file') => {
         const file = e.target.files?.[0]
         if (!file) return
 
@@ -29,7 +30,7 @@ function MessageInput({ onSend, roomMembers }) {
             const response = await messageService.uploadFile(formData)
 
             if (response.data) {
-                const fileType = file.type.startsWith('image/') ? 'image' : 'file'
+                const fileType = type === 'image' || file.type.startsWith('image/') ? 'image' : 'file'
                 onSend(message || '', fileType, {
                     url: response.data.file_url,
                     name: response.data.file_name,
@@ -43,6 +44,9 @@ function MessageInput({ onSend, roomMembers }) {
             setUploading(false)
             if (fileInputRef.current) {
                 fileInputRef.current.value = ''
+            }
+            if (imageInputRef.current) {
+                imageInputRef.current.value = ''
             }
         }
     }
@@ -58,12 +62,33 @@ function MessageInput({ onSend, roomMembers }) {
         <div className="border-t bg-card p-4">
             <form onSubmit={handleSubmit} className="flex items-end gap-2">
                 <input
+                    ref={imageInputRef}
+                    type="file"
+                    onChange={(e) => handleFileUpload(e, 'image')}
+                    className="hidden"
+                    accept="image/*"
+                />
+                <input
                     ref={fileInputRef}
                     type="file"
-                    onChange={handleFileUpload}
+                    onChange={(e) => handleFileUpload(e, 'file')}
                     className="hidden"
-                    accept="image/*,application/*"
                 />
+
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => imageInputRef.current?.click()}
+                    disabled={uploading}
+                    title="Send image"
+                >
+                    {uploading ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                        <ImageIcon className="h-5 w-5" />
+                    )}
+                </Button>
 
                 <Button
                     type="button"
@@ -71,12 +96,9 @@ function MessageInput({ onSend, roomMembers }) {
                     size="icon"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
+                    title="Send file"
                 >
-                    {uploading ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                        <Paperclip className="h-5 w-5" />
-                    )}
+                    <Paperclip className="h-5 w-5" />
                 </Button>
 
                 <div className="flex-1 relative">

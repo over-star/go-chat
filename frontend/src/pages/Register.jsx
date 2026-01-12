@@ -6,37 +6,31 @@ import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card'
+import errorHandler from '../utils/errorHandler'
 
 function Register() {
     const [username, setUsername] = useState('')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [confirmPassword, setConfirmPassword] = useState('')
-    const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
     const { register } = useAuth()
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        setError('')
 
         if (password !== confirmPassword) {
-            setError('Passwords do not match')
+            errorHandler.error(null, 'Passwords do not match', { id: 'validation-pwd' })
             return
         }
 
         if (password.length < 6) {
-            setError('Password must be at least 6 characters')
+            errorHandler.error(null, 'Password must be at least 6 characters', { id: 'validation-len' })
             return
         }
 
         setLoading(true)
-        const result = await register(username, email, password)
-
-        if (!result.success) {
-            setError(result.error)
-        }
-
+        await register(username, email, password)
         setLoading(false)
     }
 
@@ -55,11 +49,6 @@ function Register() {
 
                 <form onSubmit={handleSubmit}>
                     <CardContent className="space-y-4">
-                        {error && (
-                            <div className="p-3 text-sm text-destructive-foreground bg-destructive/10 border border-destructive rounded-md">
-                                {error}
-                            </div>
-                        )}
 
                         <div className="space-y-2">
                             <Label htmlFor="username">Username</Label>

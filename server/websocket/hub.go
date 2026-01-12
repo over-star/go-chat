@@ -78,8 +78,8 @@ func (h *Hub) Run() {
 
 // broadcastMessage sends message to appropriate recipients
 func (h *Hub) broadcastMessage(message []byte, msg map[string]interface{}) {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
+	h.mu.Lock()
+	defer h.mu.Unlock()
 
 	messageType, _ := msg["type"].(string)
 
@@ -129,8 +129,8 @@ func (h *Hub) sendToUser(userID uint, message []byte) {
 
 // BroadcastToRoom sends message to all members of a room
 func (h *Hub) BroadcastToRoom(roomMembers []uint, message []byte) {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
+	h.mu.Lock()
+	defer h.mu.Unlock()
 
 	for _, userID := range roomMembers {
 		h.sendToUser(userID, message)

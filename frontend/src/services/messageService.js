@@ -6,10 +6,7 @@ export const messageService = {
         return response.data
     },
 
-    uploadFile: async (file) => {
-        const formData = new FormData()
-        formData.append('file', file)
-
+    uploadFile: async (formData) => {
         const response = await api.post('/messages/upload', formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',

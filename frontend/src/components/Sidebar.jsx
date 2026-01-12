@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { userService } from '../services/userService'
 import { roomService } from '../services/roomService'
+import errorHandler from '../utils/errorHandler'
 import { MessageCircle, Users, UserPlus, Search, Plus, LogOut, Hash, Loader2 } from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
@@ -27,12 +28,18 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, user }) {
         }
     }, [activeTab])
 
+    useEffect(() => {
+        if (showCreateRoom && friends.length === 0) {
+            loadFriends()
+        }
+    }, [showCreateRoom])
+
     const loadFriends = async () => {
         try {
             const response = await userService.getFriends()
             if (response.data) setFriends(response.data)
         } catch (error) {
-            console.error('Failed to load friends:', error)
+            // Global handler
         }
     }
 
@@ -41,7 +48,7 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, user }) {
             const response = await userService.getFriendRequests()
             if (response.data) setFriendRequests(response.data)
         } catch (error) {
-            console.error('Failed to load friend requests:', error)
+            // Global handler
         }
     }
 
@@ -56,7 +63,7 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, user }) {
             const response = await userService.searchUsers(query)
             if (response.data) setSearchResults(response.data)
         } catch (error) {
-            console.error('Search failed:', error)
+            // Silent fail for search often better, or global handler
         }
     }
 
@@ -65,8 +72,9 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, user }) {
             await userService.addFriend(friendId)
             setSearchResults([])
             setSearchQuery('')
+            errorHandler.success('Friend request sent')
         } catch (error) {
-            console.error('Failed to add friend:', error)
+            // Global handler
         }
     }
 
@@ -75,8 +83,9 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, user }) {
             await userService.acceptFriend(friendId)
             loadFriends()
             loadFriendRequests()
+            errorHandler.success('Friend request accepted')
         } catch (error) {
-            console.error('Failed to accept friend:', error)
+            // Global handler
         }
     }
 
@@ -89,7 +98,7 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, user }) {
                 setActiveTab('rooms')
             }
         } catch (error) {
-            console.error('Failed to create private chat:', error)
+            // Global handler
         } finally {
             setLoading(false)
         }
@@ -167,7 +176,11 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, user }) {
                                         key={room.id}
                                         room={room}
                                         isSelected={selectedRoom?.id === room.id}
-                                        onClick={() => onRoomSelect(room)}
+                                        onClick={() => {
+                                            if (selectedRoom?.id !== room.id) {
+                                                onRoomSelect(room)
+                                            }
+                                        }}
                                     />
                                 ))}
                             </div>
@@ -304,9 +317,12 @@ function CreateRoomForm({ friends, onRoomCreated, onCancel }) {
         try {
             setLoading(true)
             const response = await roomService.createRoom(roomName, 'group', selectedFriends)
-            if (response.data) onRoomCreated(response.data)
+            if (response.data) {
+                onRoomCreated(response.data)
+                errorHandler.success('Group chat created')
+            }
         } catch (error) {
-            console.error('Failed to create room:', error)
+            // Global handler
         } finally {
             setLoading(false)
         }

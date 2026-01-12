@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { roomService } from '../services/roomService'
+import errorHandler from '../utils/errorHandler'
 import { X, Users, Crown, LogOut, Trash2, Loader2 } from 'lucide-react'
 import { Button } from './ui/button'
 import { ScrollArea } from './ui/scroll-area'
@@ -16,8 +17,9 @@ function RoomInfo({ room, onClose, onRoomDeleted }) {
             await roomService.leaveRoom(room.id)
             onRoomDeleted(room.id)
             onClose()
+            errorHandler.success('Left room successfully')
         } catch (error) {
-            console.error('Failed to leave room:', error)
+            // Global handler
         } finally {
             setLoading(false)
         }
@@ -31,8 +33,9 @@ function RoomInfo({ room, onClose, onRoomDeleted }) {
             await roomService.deleteRoom(room.id)
             onRoomDeleted(room.id)
             onClose()
+            errorHandler.success('Room deleted successfully')
         } catch (error) {
-            console.error('Failed to delete room:', error)
+            // Global handler
         } finally {
             setLoading(false)
         }

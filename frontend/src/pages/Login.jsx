@@ -10,20 +10,16 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 function Login() {
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
-    const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
     const { login } = useAuth()
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        setError('')
         setLoading(true)
 
-        const result = await login(username, password)
-
-        if (!result.success) {
-            setError(result.error)
-        }
+        await login(username, password)
+        // No need to check result.success to set error, global handler does it
+        // If success, AuthContext navigates away
 
         setLoading(false)
     }
@@ -43,11 +39,6 @@ function Login() {
 
                 <form onSubmit={handleSubmit}>
                     <CardContent className="space-y-4">
-                        {error && (
-                            <div className="p-3 text-sm text-destructive-foreground bg-destructive/10 border border-destructive rounded-md">
-                                {error}
-                            </div>
-                        )}
 
                         <div className="space-y-2">
                             <Label htmlFor="username">Username or Email</Label>

@@ -12,11 +12,35 @@ import (
 	"github.com/google/uuid"
 )
 
+// Error codes
+const (
+	ErrCodeValidation = "VALIDATION_ERROR"
+	ErrCodeAuth       = "AUTH_ERROR"
+	ErrCodeForbidden  = "FORBIDDEN"
+	ErrCodeNotFound   = "NOT_FOUND"
+	ErrCodeConflict   = "CONFLICT"
+	ErrCodeServer     = "SERVER_ERROR"
+)
+
 // Response is a standard API response structure
 type Response struct {
 	Code    int         `json:"code"`
 	Message string      `json:"message"`
 	Data    interface{} `json:"data,omitempty"`
+}
+
+// ErrorResponseStruct is the structure for error responses
+type ErrorResponseStruct struct {
+	Code      int         `json:"code"`
+	Message   string      `json:"message"`
+	ErrorCode string      `json:"error_code,omitempty"`
+	Details   interface{} `json:"details,omitempty"`
+}
+
+// ValidationError represents a single validation error
+type ValidationError struct {
+	Field   string `json:"field"`
+	Message string `json:"message"`
 }
 
 // SuccessResponse creates a successful response
@@ -29,10 +53,20 @@ func SuccessResponse(data interface{}) Response {
 }
 
 // ErrorResponse creates an error response
-func ErrorResponse(code int, message string) Response {
-	return Response{
+func ErrorResponse(code int, message string) ErrorResponseStruct {
+	return ErrorResponseStruct{
 		Code:    code,
 		Message: message,
+	}
+}
+
+// DetailedErrorResponse creates an error response with error code and details
+func DetailedErrorResponse(code int, message string, errorCode string, details interface{}) ErrorResponseStruct {
+	return ErrorResponseStruct{
+		Code:      code,
+		Message:   message,
+		ErrorCode: errorCode,
+		Details:   details,
 	}
 }
 

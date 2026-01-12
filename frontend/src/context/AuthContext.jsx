@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { authService } from '../services/authService'
+import errorHandler from '../utils/errorHandler'
 
 const AuthContext = createContext(null)
 
@@ -39,13 +40,12 @@ export const AuthProvider = ({ children }) => {
                 localStorage.setItem('token', response.data.token)
                 localStorage.setItem('user', JSON.stringify(response.data.user))
                 navigate('/chat')
+                errorHandler.success('Welcome back!')
                 return { success: true }
             }
         } catch (error) {
-            return {
-                success: false,
-                error: error.response?.data?.message || 'Login failed'
-            }
+            // Error is handled globally by api interceptor
+            return { success: false }
         }
     }
 
@@ -58,13 +58,12 @@ export const AuthProvider = ({ children }) => {
                 localStorage.setItem('token', response.data.token)
                 localStorage.setItem('user', JSON.stringify(response.data.user))
                 navigate('/chat')
+                errorHandler.success('Account created successfully!')
                 return { success: true }
             }
         } catch (error) {
-            return {
-                success: false,
-                error: error.response?.data?.message || 'Registration failed'
-            }
+            // Error is handled globally by api interceptor
+            return { success: false }
         }
     }
 

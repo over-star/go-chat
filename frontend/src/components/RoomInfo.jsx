@@ -13,14 +13,14 @@ function RoomInfo({ room, onClose, onRoomDeleted, onRoomUpdated }) {
     const isCreator = currentUser?.id === room.creator_id
 
     const handleLeaveRoom = async () => {
-        if (!confirm('Are you sure you want to leave this room?')) return
+        if (!confirm('确定要退出该群聊吗？')) return
 
         try {
             setLoading(true)
             await roomService.leaveRoom(room.id)
             onRoomDeleted(room.id)
             onClose()
-            errorHandler.success('Left room successfully')
+            errorHandler.success('已退出群聊')
         } catch (error) {
             // Global handler
         } finally {
@@ -29,14 +29,14 @@ function RoomInfo({ room, onClose, onRoomDeleted, onRoomUpdated }) {
     }
 
     const handleDeleteRoom = async () => {
-        if (!confirm('Are you sure you want to delete this room? This action cannot be undone.')) return
+        if (!confirm('确定要解散该群聊吗？此操作无法撤销。')) return
 
         try {
             setLoading(true)
             await roomService.deleteRoom(room.id)
             onRoomDeleted(room.id)
             onClose()
-            errorHandler.success('Room deleted successfully')
+            errorHandler.success('群聊已解散')
         } catch (error) {
             // Global handler
         } finally {
@@ -45,12 +45,12 @@ function RoomInfo({ room, onClose, onRoomDeleted, onRoomUpdated }) {
     }
 
     const handleRemoveMember = async (userId) => {
-        if (!confirm('Are you sure you want to remove this member?')) return
+        if (!confirm('确定要移除该成员吗？')) return
 
         try {
             setLoading(true)
             await roomService.removeMember(room.id, userId)
-            errorHandler.success('Member removed')
+            errorHandler.success('成员已移除')
             if (onRoomUpdated) {
                 // Fetch updated room info
                 const response = await roomService.getRoom(room.id)
@@ -67,7 +67,7 @@ function RoomInfo({ room, onClose, onRoomDeleted, onRoomUpdated }) {
         <div className="w-80 border-l bg-card flex flex-col h-full">
             {/* Header */}
             <div className="p-4 border-b flex items-center justify-between">
-                <h3 className="font-semibold">Room Info</h3>
+                <h3 className="font-semibold">聊天信息</h3>
                 <Button variant="ghost" size="icon" onClick={onClose}>
                     <X className="h-5 w-5" />
                 </Button>
@@ -84,7 +84,7 @@ function RoomInfo({ room, onClose, onRoomDeleted, onRoomUpdated }) {
                         </Avatar>
                         <h2 className="text-xl font-bold">{room.name}</h2>
                         <p className="text-sm text-muted-foreground mt-1">
-                            {room.type === 'group' ? 'Group Chat' : 'Direct Message'}
+                            {room.type === 'group' ? '群聊' : '私聊'}
                         </p>
                     </div>
 
@@ -93,7 +93,7 @@ function RoomInfo({ room, onClose, onRoomDeleted, onRoomUpdated }) {
                         <div>
                             <div className="flex items-center gap-2 mb-3">
                                 <Users className="h-4 w-4 text-muted-foreground" />
-                                <h4 className="font-semibold text-sm">Members ({room.members.length})</h4>
+                                <h4 className="font-semibold text-sm">成员 ({room.members.length})</h4>
                             </div>
 
                             <div className="space-y-2">
@@ -131,21 +131,23 @@ function RoomInfo({ room, onClose, onRoomDeleted, onRoomUpdated }) {
 
                     {/* Room Settings */}
                     <div>
-                        <h4 className="font-semibold text-sm mb-3">Room Settings</h4>
+                        <h4 className="font-semibold text-sm mb-3">聊天设置</h4>
                         <div className="space-y-2">
                             <div className="p-3 rounded-lg bg-muted/50">
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">Created</span>
+                                    <span className="text-muted-foreground">创建时间</span>
                                     <span className="font-medium">
-                                        {new Date(room.created_at).toLocaleDateString()}
+                                        {room.created_at && !isNaN(new Date(room.created_at).getTime())
+                                            ? new Date(room.created_at).toLocaleDateString('zh-CN')
+                                            : '未知'}
                                     </span>
                                 </div>
                             </div>
 
                             <div className="p-3 rounded-lg bg-muted/50">
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">Type</span>
-                                    <span className="font-medium capitalize">{room.type}</span>
+                                    <span className="text-muted-foreground">类型</span>
+                                    <span className="font-medium">{room.type === 'group' ? '群聊' : '私聊'}</span>
                                 </div>
                             </div>
                         </div>
@@ -163,7 +165,7 @@ function RoomInfo({ room, onClose, onRoomDeleted, onRoomUpdated }) {
                         disabled={loading}
                     >
                         <LogOut className="h-4 w-4 mr-2" />
-                        Leave Room
+                        退出群聊
                     </Button>
                 )}
 
@@ -178,12 +180,12 @@ function RoomInfo({ room, onClose, onRoomDeleted, onRoomUpdated }) {
                         {loading ? (
                             <>
                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Deleting...
+                                正在解散...
                             </>
                         ) : (
                             <>
                                 <Trash2 className="h-4 w-4 mr-2" />
-                                Delete Room
+                                解散群聊
                             </>
                         )}
                     </Button>

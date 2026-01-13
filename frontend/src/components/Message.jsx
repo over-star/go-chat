@@ -7,8 +7,10 @@ function Message({ message, isOwn, roomMembers }) {
     const [imageError, setImageError] = useState(false)
 
     const formatTime = (timestamp) => {
+        if (!timestamp) return ''
         const date = new Date(timestamp)
-        return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+        if (isNaN(date.getTime())) return ''
+        return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
     }
 
     const formatFileSize = (bytes) => {
@@ -30,7 +32,7 @@ function Message({ message, isOwn, roomMembers }) {
 
             <div className={cn("flex flex-col max-w-[75%]", isOwn && "items-end")}>
                 <span className="text-xs font-medium text-muted-foreground mb-1 px-1">
-                    {message.sender?.username}
+                    {message.sender?.nickname || message.sender?.username}
                 </span>
 
                 <div
@@ -59,7 +61,7 @@ function Message({ message, isOwn, roomMembers }) {
                                 <div className="flex items-center gap-3 p-3 bg-background/20 rounded-lg">
                                     <ImageIcon className="h-8 w-8" />
                                     <div className="flex-1">
-                                        <p className="text-sm font-medium">Image unavailable</p>
+                                        <p className="text-sm font-medium">图片不可用</p>
                                         <p className="text-xs opacity-70">{message.file_name}</p>
                                     </div>
                                 </div>
@@ -96,7 +98,7 @@ function Message({ message, isOwn, roomMembers }) {
                                         : "hover:bg-background/50"
                                 )}
                                 onClick={(e) => e.stopPropagation()}
-                                title="Download file"
+                                title="下载文件"
                             >
                                 <Download className="h-4 w-4" />
                             </a>

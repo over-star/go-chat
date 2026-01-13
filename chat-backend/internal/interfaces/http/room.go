@@ -2,19 +2,23 @@ package http
 
 import (
 	"chat-backend/internal/app/command"
+	"chat-backend/internal/domain/room"
 	"chat-backend/pkg/xerror"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type RoomHandler struct {
 	roomApp *command.RoomHandler
+	db      *gorm.DB
 }
 
-func NewRoomHandler(roomApp *command.RoomHandler) *RoomHandler {
-	return &RoomHandler{roomApp: roomApp}
+func NewRoomHandler(roomApp *command.RoomHandler, db *gorm.DB) *RoomHandler {
+	return &RoomHandler{roomApp: roomApp, db: db}
 }
 
 func (h *RoomHandler) CreateRoom(c *gin.Context) {
@@ -45,9 +49,38 @@ func (h *RoomHandler) GetRooms(c *gin.Context) {
 		return
 	}
 
-	responses := make([]interface{}, len(rooms))
+	responses := make([]room.RoomResponse, len(rooms))
 	for i, rm := range rooms {
-		responses[i] = rm.ToResponse()
+		resp := rm.ToResponse()
+		// Count unread messages
+		var count int64
+		h.db.Table("messages").
+			Joins("LEFT JOIN read_receipts ON read_receipts.message_id = messages.id AND read_receipts.user_id = ?", userID).
+			Where("messages.room_id = ? AND messages.sender_id != ? AND read_receipts.id IS NULL", rm.ID, userID).
+			Count(&count)
+		resp.UnreadCount = count
+
+		// Get last message
+		var lastMsg struct {
+			ID        uint      `json:"id"`
+			Content   string    `json:"content"`
+			CreatedAt time.Time `json:"created_at"`
+			SenderID  uint      `json:"sender_id"`
+			Sender    struct {
+				Username string `json:"username"`
+				Nickname string `json:"nickname"`
+			} `json:"sender" gorm:"-"`
+		}
+		if err := h.db.Table("messages").
+			Where("room_id = ?", rm.ID).
+			Order("created_at DESC").
+			First(&lastMsg).Error; err == nil {
+			// Fetch sender info for last message
+			h.db.Table("users").Select("username, nickname").Where("id = ?", lastMsg.SenderID).First(&lastMsg.Sender)
+			resp.LastMessage = lastMsg
+		}
+
+		responses[i] = resp
 	}
 	c.JSON(http.StatusOK, gin.H{"code": 0, "data": responses})
 }

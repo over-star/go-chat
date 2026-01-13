@@ -84,7 +84,7 @@ func main() {
 
 	authHandler := http.NewAuthHandler(authApp)
 	userHandler := http.NewUserHandler(userApp)
-	roomHandler := http.NewRoomHandler(roomApp)
+	roomHandler := http.NewRoomHandler(roomApp, db)
 	messageHandler := http.NewMessageHandler(messageApp)
 
 	// 5. Setup Gin
@@ -114,6 +114,7 @@ func main() {
 		{
 			// User routes
 			protected.GET("/users/profile", userHandler.GetProfile)
+			protected.PUT("/users/profile", userHandler.UpdateProfile)
 			protected.GET("/users/search", userHandler.SearchUsers)
 			protected.GET("/users/friends", userHandler.GetFriends)
 			protected.GET("/users/friend-requests", userHandler.GetFriendRequests)

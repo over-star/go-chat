@@ -4,10 +4,21 @@ import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { friendGroupService } from '../services/friendGroupService'
 import errorHandler from '../utils/errorHandler'
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "./ui/alert-dialog"
 
 export default function ManageGroupsModal({ groups, onGroupsChange, onClose }) {
     const [newGroupName, setNewGroupName] = useState('')
     const [loading, setLoading] = useState(false)
+    const [confirmConfig, setConfirmConfig] = useState(null)
 
     const handleCreateGroup = async () => {
         if (!newGroupName.trim()) return
@@ -16,7 +27,7 @@ export default function ManageGroupsModal({ groups, onGroupsChange, onClose }) {
             await friendGroupService.createGroup(newGroupName.trim())
             setNewGroupName('')
             onGroupsChange()
-            errorHandler.success('Group created')
+            errorHandler.success('分组已创建')
         } catch (error) {
             // Handled by interceptor
         } finally {
@@ -25,24 +36,48 @@ export default function ManageGroupsModal({ groups, onGroupsChange, onClose }) {
     }
 
     const handleDeleteGroup = async (id) => {
-        if (!confirm('Are you sure you want to delete this group? Friends in this group will be moved to Ungrouped.')) return
-        try {
-            setLoading(true)
-            await friendGroupService.deleteGroup(id)
-            onGroupsChange()
-            errorHandler.success('Group deleted')
-        } catch (error) {
-            // Handled by interceptor
-        } finally {
-            setLoading(false)
-        }
+        setConfirmConfig({
+            title: '删除分组',
+            description: '确定要删除该分组吗？该分组下的好友将被移动到“未分组”。',
+            onConfirm: async () => {
+                try {
+                    setLoading(true)
+                    await friendGroupService.deleteGroup(id)
+                    onGroupsChange()
+                    errorHandler.success('分组已删除')
+                } catch (error) {
+                    // Handled by interceptor
+                } finally {
+                    setLoading(false)
+                }
+            }
+        })
     }
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+            <AlertDialog open={!!confirmConfig} onOpenChange={() => setConfirmConfig(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{confirmConfig?.title}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {confirmConfig?.description}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={confirmConfig?.onConfirm}
+                        >
+                            Confirm
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
             <div className="bg-card w-full max-w-md border shadow-lg rounded-xl flex flex-col max-h-[80vh]">
                 <div className="flex items-center justify-between p-4 border-b">
-                    <h2 className="text-lg font-semibold">Manage Friend Groups</h2>
+                    <h2 className="text-lg font-semibold">管理好友分组</h2>
                     <Button variant="ghost" size="icon" onClick={onClose}>
                         <X className="h-5 w-5" />
                     </Button>
@@ -51,14 +86,14 @@ export default function ManageGroupsModal({ groups, onGroupsChange, onClose }) {
                 <div className="p-4 border-b">
                     <div className="flex gap-2">
                         <Input
-                            placeholder="New group name..."
+                            placeholder="新分组名称..."
                             value={newGroupName}
                             onChange={(e) => setNewGroupName(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleCreateGroup()}
                         />
                         <Button onClick={handleCreateGroup} disabled={loading || !newGroupName.trim()}>
                             <Plus className="h-4 w-4 mr-2" />
-                            Create
+                            创建
                         </Button>
                     </div>
                 </div>
@@ -67,7 +102,7 @@ export default function ManageGroupsModal({ groups, onGroupsChange, onClose }) {
                     <div className="space-y-2">
                         {groups.length === 0 ? (
                             <div className="text-center py-8 text-muted-foreground text-sm">
-                                No custom groups created yet.
+                                暂无自定义分组。
                             </div>
                         ) : (
                             groups.map(group => (

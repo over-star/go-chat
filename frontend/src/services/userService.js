@@ -6,6 +6,11 @@ export const userService = {
         return response.data
     },
 
+    updateProfile: async (data) => {
+        const response = await api.put('/users/profile', data)
+        return response.data
+    },
+
     searchUsers: async (query) => {
         const response = await api.get(`/users/search?q=${query}`)
         return response.data

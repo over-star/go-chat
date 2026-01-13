@@ -27,6 +27,24 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 0, "data": u.ToResponse()})
 }
 
+func (h *UserHandler) UpdateProfile(c *gin.Context) {
+	userID := c.MustGet("user_id").(uint)
+	var req struct {
+		Nickname string `json:"nickname"`
+		Avatar   string `json:"avatar"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, xerror.New(xerror.CodeInvalidParams, err.Error()))
+		return
+	}
+
+	if err := h.userApp.UpdateProfile(userID, req.Nickname, req.Avatar); err != nil {
+		c.JSON(http.StatusInternalServerError, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "profile updated"})
+}
+
 func (h *UserHandler) SearchUsers(c *gin.Context) {
 	query := c.Query("q")
 	users, err := h.userApp.SearchUsers(query)
@@ -173,7 +191,7 @@ func (h *UserHandler) SetFriendGroup(c *gin.Context) {
 	userID := c.MustGet("user_id").(uint)
 	var req struct {
 		FriendID uint `json:"friend_id" binding:"required"`
-		GroupID  uint `json:"group_id" binding:"required"`
+		GroupID  uint `json:"group_id"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, xerror.New(xerror.CodeInvalidParams, err.Error()))

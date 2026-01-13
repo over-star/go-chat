@@ -58,31 +58,31 @@ const extractErrorMessage = (error) => {
         // Default messages based on status code
         switch (status) {
             case 400:
-                return 'Invalid request. Please check your input.'
+                return '请求无效，请检查您的输入。'
             case 401:
-                return 'Please log in to continue.'
+                return '请先登录以继续。'
             case 403:
-                return 'You don\'t have permission to perform this action.'
+                return '您没有执行此操作的权限。'
             case 404:
-                return 'The requested resource was not found.'
+                return '请求的资源不存在。'
             case 409:
-                return 'This action conflicts with existing data.'
+                return '此操作与现有数据冲突。'
             case 413:
-                return 'The file is too large.'
+                return '文件太大。'
             case 422:
-                return 'Invalid data provided.'
+                return '提供的数据无效。'
             case 500:
-                return 'Server error. Please try again later.'
+                return '服务器错误，请稍后再试。'
             case 503:
-                return 'Service temporarily unavailable.'
+                return '服务暂时不可用。'
             default:
-                return 'An error occurred. Please try again.'
+                return '发生错误，请重试。'
         }
     }
 
     // Check for network errors
     if (error.request) {
-        return 'Network error. Please check your connection.'
+        return '网络错误，请检查您的连接。'
     }
 
     // Check for error message property
@@ -91,7 +91,7 @@ const extractErrorMessage = (error) => {
     }
 
     // Fallback
-    return 'An unexpected error occurred.'
+    return '发生意外错误。'
 }
 
 /**
@@ -168,7 +168,7 @@ export const showWarning = (message, options = {}) => {
 /**
  * Show loading toast
  */
-export const showLoading = (message = 'Loading...') => {
+export const showLoading = (message = '加载中...') => {
     return toast.loading(message)
 }
 
@@ -188,7 +188,7 @@ export const showErrorWithRetry = (error, onRetry, customMessage = null) => {
     toast.error(message, {
         duration: 6000,
         action: {
-            label: 'Retry',
+            label: '重试',
             onClick: () => {
                 onRetry()
             },

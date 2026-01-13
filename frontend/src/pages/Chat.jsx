@@ -5,10 +5,12 @@ import Sidebar from '../components/Sidebar'
 import ChatArea from '../components/ChatArea'
 import RoomInfo from '../components/RoomInfo'
 import { roomService } from '../services/roomService'
+import { useWebSocket } from '../context/WebSocketContext'
 import { Loader2 } from 'lucide-react'
 
 function Chat() {
     const { user, isAuthenticated, loading } = useAuth()
+    const { lastMessage } = useWebSocket()
     const navigate = useNavigate()
     const [rooms, setRooms] = useState([])
     const [selectedRoom, setSelectedRoom] = useState(null)
@@ -112,6 +114,27 @@ function Chat() {
             setSelectedRoom(updatedRoom)
         }
     }
+
+    useEffect(() => {
+        if (lastMessage && lastMessage.type === 'message' && lastMessage.data?.message) {
+            const newMsg = lastMessage.data.message
+            
+            // Update the room's unread count and last message
+            setRooms(prev => prev.map(r => {
+                if (r.id === newMsg.room_id) {
+                    const isNotSelected = newMsg.room_id !== selectedRoom?.id
+                    const isNotOwn = newMsg.sender?.id !== user?.id
+                    
+                    return {
+                        ...r,
+                        unread_count: (isNotSelected && isNotOwn) ? (r.unread_count || 0) + 1 : r.unread_count,
+                        last_message: newMsg
+                    }
+                }
+                return r
+            }))
+        }
+    }, [lastMessage, selectedRoom, user])
 
     if (loading || loadingRooms) {
         return (

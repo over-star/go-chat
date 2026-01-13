@@ -67,6 +67,12 @@ func (h *MessageHandler) UploadFile(c *gin.Context) {
 		return
 	}
 
+	// Max 4MB check
+	if file.Size > 4*1024*1024 {
+		c.JSON(http.StatusBadRequest, xerror.New(xerror.CodeInvalidParams, "file size exceeds 4MB limit"))
+		return
+	}
+
 	// Ensure upload directory exists
 	uploadDir := "uploads"
 	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {

@@ -32,8 +32,8 @@ function Login() {
                         <MessageCircle className="h-8 w-8 text-primary-foreground" />
                     </div>
                     <div>
-                        <CardTitle className="text-3xl">Welcome Back</CardTitle>
-                        <CardDescription>Sign in to continue chatting</CardDescription>
+                        <CardTitle className="text-3xl">欢迎回来</CardTitle>
+                        <CardDescription>登录以继续聊天</CardDescription>
                     </div>
                 </CardHeader>
 
@@ -41,13 +41,13 @@ function Login() {
                     <CardContent className="space-y-4">
 
                         <div className="space-y-2">
-                            <Label htmlFor="username">Username or Email</Label>
+                            <Label htmlFor="username">用户名或邮箱</Label>
                             <div className="relative">
                                 <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     id="username"
                                     type="text"
-                                    placeholder="Enter your username"
+                                    placeholder="输入用户名"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
                                     required
@@ -57,13 +57,13 @@ function Login() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="password">Password</Label>
+                            <Label htmlFor="password">密码</Label>
                             <div className="relative">
                                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     id="password"
                                     type="password"
-                                    placeholder="Enter your password"
+                                    placeholder="输入密码"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
@@ -76,19 +76,19 @@ function Login() {
                             {loading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Signing in...
+                                    登录中...
                                 </>
                             ) : (
-                                'Sign In'
+                                '登录'
                             )}
                         </Button>
                     </CardContent>
 
                     <CardFooter className="flex-col space-y-2">
                         <div className="text-sm text-muted-foreground">
-                            Don't have an account?{' '}
+                            没有账号？{' '}
                             <Link to="/register" className="text-primary hover:underline font-medium">
-                                Sign Up
+                                立即注册
                             </Link>
                         </div>
                     </CardFooter>

@@ -49,9 +49,9 @@ export const AuthProvider = ({ children }) => {
         }
     }
 
-    const register = async (username, email, password) => {
+    const register = async (username, nickname, email, password) => {
         try {
-            const response = await authService.register(username, email, password)
+            const response = await authService.register(username, nickname, email, password)
             if (response.data) {
                 setToken(response.data.token)
                 setUser(response.data.user)
@@ -74,12 +74,19 @@ export const AuthProvider = ({ children }) => {
         navigate('/login')
     }
 
+    const updateUser = (userData) => {
+        const newUser = { ...user, ...userData }
+        setUser(newUser)
+        localStorage.setItem('user', JSON.stringify(newUser))
+    }
+
     const value = {
         user,
         token,
         login,
         register,
         logout,
+        updateUser,
         isAuthenticated: !!token,
         loading,
     }

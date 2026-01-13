@@ -18,6 +18,7 @@ func NewAuthHandler(authApp *command.AuthHandler) *AuthHandler {
 
 type registerRequest struct {
 	Username string `json:"username" binding:"required,min=3,max=50"`
+	Nickname string `json:"nickname" binding:"required,min=2,max=50"`
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=6"`
 }
@@ -29,7 +30,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	u, err := h.authApp.Register(req.Username, req.Email, req.Password)
+	u, err := h.authApp.Register(req.Username, req.Nickname, req.Email, req.Password)
 	if err != nil {
 		if e, ok := err.(*xerror.Error); ok {
 			c.JSON(http.StatusInternalServerError, e)

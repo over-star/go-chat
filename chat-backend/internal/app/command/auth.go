@@ -16,7 +16,7 @@ func NewAuthHandler(userRepo user.Repository) *AuthHandler {
 	return &AuthHandler{userRepo: userRepo}
 }
 
-func (h *AuthHandler) Register(username, email, password string) (*user.User, error) {
+func (h *AuthHandler) Register(username, nickname, email, password string) (*user.User, error) {
 	// Check if user exists
 	_, err := h.userRepo.GetByUsername(username)
 	if err == nil {
@@ -35,6 +35,7 @@ func (h *AuthHandler) Register(username, email, password string) (*user.User, er
 
 	u := &user.User{
 		Username: username,
+		Nickname: nickname,
 		Email:    email,
 		Password: hashedPassword,
 		Status:   "offline",

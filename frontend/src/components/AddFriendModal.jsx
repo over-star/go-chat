@@ -31,7 +31,7 @@ export default function AddFriendModal({ onClose }) {
         try {
             setLoading(true)
             await userService.addFriend(friendId)
-            errorHandler.success('Friend request sent')
+            errorHandler.success('好友请求已发送')
             // Optionally remove from search results or show "Sent"
             setSearchResults(results => results.filter(u => u.id !== friendId))
         } catch (error) {
@@ -45,7 +45,7 @@ export default function AddFriendModal({ onClose }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
             <div className="bg-card w-full max-w-md border shadow-lg rounded-xl flex flex-col max-h-[80vh]">
                 <div className="flex items-center justify-between p-4 border-b">
-                    <h2 className="text-lg font-semibold">Add Friend</h2>
+                    <h2 className="text-lg font-semibold">添加好友</h2>
                     <Button variant="ghost" size="icon" onClick={onClose}>
                         <X className="h-5 w-5" />
                     </Button>
@@ -55,7 +55,7 @@ export default function AddFriendModal({ onClose }) {
                     <div className="relative">
                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                            placeholder="Search by username..."
+                            placeholder="按用户名搜索..."
                             value={searchQuery}
                             onChange={handleSearch}
                             className="pl-8"
@@ -67,7 +67,7 @@ export default function AddFriendModal({ onClose }) {
                 <div className="flex-1 overflow-y-auto p-2">
                     {searchResults.length === 0 ? (
                         <div className="text-center py-8 text-muted-foreground text-sm">
-                            {searchQuery.trim().length < 2 ? 'Type at least 2 characters to search' : 'No users found'}
+                            {searchQuery.trim().length < 2 ? '输入至少 2 个字符以搜索' : '未找到用户'}
                         </div>
                     ) : (
                         <div className="space-y-1">
@@ -84,7 +84,7 @@ export default function AddFriendModal({ onClose }) {
                                         disabled={loading}
                                     >
                                         <UserPlus className="h-4 w-4 mr-2" />
-                                        Add
+                                        添加
                                     </Button>
                                 </div>
                             ))}

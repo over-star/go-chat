@@ -10,6 +10,7 @@ import errorHandler from '../utils/errorHandler'
 
 function Register() {
     const [username, setUsername] = useState('')
+    const [nickname, setNickname] = useState('')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [confirmPassword, setConfirmPassword] = useState('')
@@ -20,17 +21,17 @@ function Register() {
         e.preventDefault()
 
         if (password !== confirmPassword) {
-            errorHandler.error(null, 'Passwords do not match', { id: 'validation-pwd' })
+            errorHandler.error(null, '两次输入的密码不一致', { id: 'validation-pwd' })
             return
         }
 
         if (password.length < 6) {
-            errorHandler.error(null, 'Password must be at least 6 characters', { id: 'validation-len' })
+            errorHandler.error(null, '密码长度至少为 6 位', { id: 'validation-len' })
             return
         }
 
         setLoading(true)
-        await register(username, email, password)
+        await register(username, nickname, email, password)
         setLoading(false)
     }
 
@@ -42,8 +43,8 @@ function Register() {
                         <MessageCircle className="h-8 w-8 text-primary-foreground" />
                     </div>
                     <div>
-                        <CardTitle className="text-3xl">Create Account</CardTitle>
-                        <CardDescription>Join us and start chatting</CardDescription>
+                        <CardTitle className="text-3xl">创建账号</CardTitle>
+                        <CardDescription>加入我们并开始聊天</CardDescription>
                     </div>
                 </CardHeader>
 
@@ -51,13 +52,13 @@ function Register() {
                     <CardContent className="space-y-4">
 
                         <div className="space-y-2">
-                            <Label htmlFor="username">Username</Label>
+                            <Label htmlFor="username">用户名</Label>
                             <div className="relative">
                                 <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     id="username"
                                     type="text"
-                                    placeholder="Choose a username"
+                                    placeholder="选择用户名"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
                                     required
@@ -68,13 +69,30 @@ function Register() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
+                            <Label htmlFor="nickname">昵称</Label>
+                            <div className="relative">
+                                <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    id="nickname"
+                                    type="text"
+                                    placeholder="输入昵称"
+                                    value={nickname}
+                                    onChange={(e) => setNickname(e.target.value)}
+                                    required
+                                    minLength={2}
+                                    className="pl-10"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="email">邮箱</Label>
                             <div className="relative">
                                 <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     id="email"
                                     type="email"
-                                    placeholder="Enter your email"
+                                    placeholder="输入邮箱"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
@@ -84,13 +102,13 @@ function Register() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="password">Password</Label>
+                            <Label htmlFor="password">密码</Label>
                             <div className="relative">
                                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     id="password"
                                     type="password"
-                                    placeholder="Create a password"
+                                    placeholder="创建密码"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
@@ -101,13 +119,13 @@ function Register() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="confirmPassword">Confirm Password</Label>
+                            <Label htmlFor="confirmPassword">确认密码</Label>
                             <div className="relative">
                                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     id="confirmPassword"
                                     type="password"
-                                    placeholder="Confirm your password"
+                                    placeholder="再次输入密码"
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                     required
@@ -120,19 +138,19 @@ function Register() {
                             {loading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Creating account...
+                                    创建账号中...
                                 </>
                             ) : (
-                                'Create Account'
+                                '创建账号'
                             )}
                         </Button>
                     </CardContent>
 
                     <CardFooter className="flex-col space-y-2">
                         <div className="text-sm text-muted-foreground">
-                            Already have an account?{' '}
+                            已有账号？{' '}
                             <Link to="/login" className="text-primary hover:underline font-medium">
-                                Sign In
+                                立即登录
                             </Link>
                         </div>
                     </CardFooter>

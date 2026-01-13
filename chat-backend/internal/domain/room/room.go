@@ -33,12 +33,14 @@ type RoomMember struct {
 }
 
 type RoomResponse struct {
-	ID        uint                `json:"id"`
-	Name      string              `json:"name"`
-	Avatar    string              `json:"avatar"`
-	Type      RoomType            `json:"type"`
-	CreatorID uint                `json:"creator_id"`
-	Members   []user.UserResponse `json:"members"`
+	ID          uint                `json:"id"`
+	Name        string              `json:"name"`
+	Avatar      string              `json:"avatar"`
+	Type        RoomType            `json:"type"`
+	CreatorID   uint                `json:"creator_id"`
+	Members     []user.UserResponse `json:"members"`
+	UnreadCount int64               `json:"unread_count"`
+	LastMessage interface{}         `json:"last_message"`
 }
 
 func (r *Room) ToResponse() RoomResponse {

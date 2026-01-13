@@ -22,7 +22,7 @@ function CreateRoomModal({ friends, groups, onRoomCreated, onClose }) {
             const response = await roomService.createRoom(roomName, 'group', selectedFriends)
             if (response.data) {
                 onRoomCreated(response.data)
-                errorHandler.success('Group chat created')
+                errorHandler.success('群聊已创建')
                 onClose()
             }
         } catch (error) {
@@ -61,7 +61,7 @@ function CreateRoomModal({ friends, groups, onRoomCreated, onClose }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
             <div className="bg-card w-full max-w-md border shadow-lg rounded-xl flex flex-col max-h-[90vh]">
                 <div className="flex items-center justify-between p-4 border-b">
-                    <h2 className="text-lg font-semibold">Create Group Chat</h2>
+                    <h2 className="text-lg font-semibold">发起群聊</h2>
                     <Button variant="ghost" size="icon" onClick={onClose}>
                         <X className="h-5 w-5" />
                     </Button>
@@ -70,9 +70,9 @@ function CreateRoomModal({ friends, groups, onRoomCreated, onClose }) {
                 <form onSubmit={handleSubmit} className="p-4 flex flex-col flex-1 overflow-hidden">
                     <div className="space-y-4 flex flex-col flex-1 overflow-hidden">
                         <div>
-                            <label className="text-sm font-medium mb-1.5 block">Group Name</label>
+                            <label className="text-sm font-medium mb-1.5 block">群聊名称</label>
                             <Input
-                                placeholder="Enter group name..."
+                                placeholder="输入群聊名称..."
                                 value={roomName}
                                 onChange={(e) => setRoomName(e.target.value)}
                                 required
@@ -81,8 +81,8 @@ function CreateRoomModal({ friends, groups, onRoomCreated, onClose }) {
 
                         <div className="flex flex-col flex-1 overflow-hidden">
                             <div className="flex items-center justify-between mb-2">
-                                <label className="text-sm font-medium">Select Members</label>
-                                <span className="text-xs text-muted-foreground">{selectedFriends.length} selected</span>
+                                <label className="text-sm font-medium">选择成员</label>
+                                <span className="text-xs text-muted-foreground">{selectedFriends.length} 已选择</span>
                             </div>
 
                             <ScrollArea className="flex-1 border rounded-md p-2">
@@ -119,7 +119,7 @@ function CreateRoomModal({ friends, groups, onRoomCreated, onClose }) {
                                                 className="flex items-center gap-1 w-full text-left text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors p-1"
                                             >
                                                 {expandedGroups.has('Ungrouped') ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                                                UNGROUPED ({ungroupedFriends.length})
+                                                未分组 ({ungroupedFriends.length})
                                             </button>
 
                                             {expandedGroups.has('Ungrouped') && ungroupedFriends.map(friend => (
@@ -139,11 +139,11 @@ function CreateRoomModal({ friends, groups, onRoomCreated, onClose }) {
 
                     <div className="flex gap-3 mt-6">
                         <Button type="button" variant="outline" onClick={onClose} className="flex-1">
-                            Cancel
+                            取消
                         </Button>
                         <Button type="submit" disabled={loading || !roomName.trim() || selectedFriends.length === 0} className="flex-1">
                             {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Users className="h-4 w-4 mr-2" />}
-                            Create Group
+                            立即创建
                         </Button>
                     </div>
                 </form>

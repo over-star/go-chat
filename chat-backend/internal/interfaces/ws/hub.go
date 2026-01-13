@@ -160,7 +160,7 @@ func (h *Hub) handleTypingStatus(client *Client, msg map[string]interface{}) {
 
 func (h *Hub) handleReadReceipt(client *Client, msg map[string]interface{}) {
 	messageID := uint(msg["message_id"].(float64))
-	if err := h.messageRepo.MarkAsRead(messageID, client.UserID); err != nil {
+	if err := h.messageRepo.MarkAsRead([]uint{messageID}, client.UserID); err != nil {
 		return
 	}
 

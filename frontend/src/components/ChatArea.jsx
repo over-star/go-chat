@@ -218,11 +218,16 @@ function ChatArea({ room, onToggleInfo, showRoomInfo, onMessagesRead }) {
             <div className="flex-1 flex items-center justify-center bg-background/50">
                 <div className="text-center">
                     <Users className="h-16 w-16 mx-auto text-muted-foreground/30 mb-4" />
-                    <p className="text-lg font-medium text-muted-foreground">Select a chat to start messaging</p>
+                    <p className="text-lg font-medium text-muted-foreground">选择一个聊天开始交谈</p>
                 </div>
             </div>
         )
     }
+
+    const isGroup = room.type === 'group'
+    const otherMember = !isGroup ? room.members?.find(m => m.id !== user?.id) : null
+    const displayName = isGroup ? room.name : (otherMember?.nickname || otherMember?.username || room.name)
+    const displayAvatar = isGroup ? room.avatar : (otherMember?.avatar || room.avatar)
 
     return (
         <div className="flex-1 flex flex-col h-full relative">
@@ -230,18 +235,18 @@ function ChatArea({ room, onToggleInfo, showRoomInfo, onMessagesRead }) {
             <div className="h-16 border-b bg-card px-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <Avatar>
-                        <AvatarImage src={room.avatar} />
-                        <AvatarFallback>{room.name[0]}</AvatarFallback>
+                        <AvatarImage src={displayAvatar} />
+                        <AvatarFallback>{displayName[0]?.toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <div>
                         <div className="flex items-center gap-2">
-                            {room.type === 'group' && <Hash className="h-4 w-4 text-muted-foreground" />}
-                            <h2 className="font-semibold">{room.name}</h2>
+                            {isGroup && <Hash className="h-4 w-4 text-muted-foreground" />}
+                            <h2 className="font-semibold">{displayName}</h2>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            {room.type === 'group'
-                                ? `${room.members?.length || 0} members`
-                                : 'Direct message'}
+                            {isGroup
+                                ? `${room.members?.length || 0} 位成员`
+                                : '私聊'}
                         </p>
                     </div>
                 </div>
@@ -262,8 +267,8 @@ function ChatArea({ room, onToggleInfo, showRoomInfo, onMessagesRead }) {
                             <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                                 <Hash className="h-8 w-8 text-primary" />
                             </div>
-                            <p className="text-lg font-medium mb-1">No messages yet</p>
-                            <p className="text-sm text-muted-foreground">Be the first to send a message!</p>
+                            <p className="text-lg font-medium mb-1">暂无消息</p>
+                            <p className="text-sm text-muted-foreground">发送第一条消息吧！</p>
                         </div>
                     </div>
                 ) : (
@@ -275,7 +280,7 @@ function ChatArea({ room, onToggleInfo, showRoomInfo, onMessagesRead }) {
                         )}
                         {!hasMore && messages.length > 0 && (
                             <div className="text-center py-2">
-                                <p className="text-xs text-muted-foreground">No more messages</p>
+                                <p className="text-xs text-muted-foreground">没有更多消息了</p>
                             </div>
                         )}
                         <div ref={messagesStartRef} />
@@ -304,7 +309,7 @@ function ChatArea({ room, onToggleInfo, showRoomInfo, onMessagesRead }) {
                     </Button>
                     {newMessageCount > 0 && (
                         <div className="mt-2 bg-primary text-primary-foreground rounded-full px-2 py-1 text-xs font-medium">
-                            {newMessageCount} new
+                            {newMessageCount} 条新消息
                         </div>
                     )}
                 </div>

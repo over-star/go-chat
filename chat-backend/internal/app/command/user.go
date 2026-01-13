@@ -21,6 +21,21 @@ func (h *UserHandler) GetProfile(userID uint) (*user.User, error) {
 	return u, nil
 }
 
+func (h *UserHandler) UpdateProfile(userID uint, nickname, avatar string) error {
+	u, err := h.userRepo.GetByID(userID)
+	if err != nil {
+		return xerror.New(xerror.CodeNotFound, "user not found")
+	}
+
+	u.Nickname = nickname
+	u.Avatar = avatar
+
+	if err := h.userRepo.Update(u); err != nil {
+		return xerror.New(xerror.CodeInternalError, "failed to update profile")
+	}
+	return nil
+}
+
 func (h *UserHandler) SearchUsers(query string) ([]user.User, error) {
 	return h.userRepo.Search(query)
 }

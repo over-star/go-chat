@@ -12,6 +12,7 @@ type User struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 	Username  string         `gorm:"uniqueIndex;not null;size:50" json:"username"`
+	Nickname  string         `gorm:"size:50" json:"nickname"`
 	Email     string         `gorm:"uniqueIndex;not null;size:100" json:"email"`
 	Password  string         `gorm:"not null" json:"-"`
 	Avatar    string         `json:"avatar"`
@@ -22,6 +23,7 @@ type User struct {
 type UserResponse struct {
 	ID       uint   `json:"id"`
 	Username string `json:"username"`
+	Nickname string `json:"nickname"`
 	Email    string `json:"email"`
 	Avatar   string `json:"avatar"`
 	Bio      string `json:"bio"`
@@ -32,6 +34,7 @@ func (u *User) ToResponse() UserResponse {
 	return UserResponse{
 		ID:       u.ID,
 		Username: u.Username,
+		Nickname: u.Nickname,
 		Email:    u.Email,
 		Avatar:   u.Avatar,
 		Bio:      u.Bio,

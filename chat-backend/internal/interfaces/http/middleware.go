@@ -30,25 +30,38 @@ func LoggerMiddleware() gin.HandlerFunc {
 		path := c.Request.URL.Path
 		query := c.Request.URL.RawQuery
 
-		// Read Request Body
+		// Skip body logging for file uploads and static files to avoid cluttering logs with binary data
+		isUpload := strings.Contains(path, "/messages/upload")
+		isStatic := strings.HasPrefix(path, "/uploads")
+		isMultipart := strings.HasPrefix(c.GetHeader("Content-Type"), "multipart/form-data")
+		
+		skipBody := isUpload || isStatic || isMultipart
+
+		// Read Request Body only if not skipping
 		var requestBody []byte
-		if c.Request.Body != nil {
+		if c.Request.Body != nil && !skipBody {
 			requestBody, _ = io.ReadAll(c.Request.Body)
 			c.Request.Body = io.NopCloser(bytes.NewBuffer(requestBody))
 		}
 
-		// Use custom response writer to capture response body
-		blw := &bodyLogWriter{body: bytes.NewBufferString(""), ResponseWriter: c.Writer}
-		c.Writer = blw
+		// Use custom response writer to capture response body only if not skipping
+		var blw *bodyLogWriter
+		if !skipBody {
+			blw = &bodyLogWriter{body: bytes.NewBufferString(""), ResponseWriter: c.Writer}
+			c.Writer = blw
+		}
 
 		c.Next()
 
 		cost := time.Since(start)
 
-		// Skip body logging for file uploads to avoid cluttering logs with binary data
 		reqBody := string(requestBody)
-		respBody := blw.body.String()
-		if strings.Contains(path, "/messages/upload") {
+		var respBody string
+		if blw != nil {
+			respBody = blw.body.String()
+		}
+
+		if skipBody {
 			reqBody = "<binary data skipped>"
 			respBody = "<response skipped>"
 		}

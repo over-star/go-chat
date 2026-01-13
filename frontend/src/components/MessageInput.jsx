@@ -100,7 +100,7 @@ function MessageInput({ onSend, roomMembers }) {
                     size="icon"
                     onClick={() => imageInputRef.current?.click()}
                     disabled={uploading}
-                    title="Send image"
+                    title="发送图片"
                 >
                     {uploading ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
@@ -115,7 +115,7 @@ function MessageInput({ onSend, roomMembers }) {
                     size="icon"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
-                    title="Send file"
+                    title="发送文件"
                 >
                     <Paperclip className="h-5 w-5" />
                 </Button>
@@ -125,7 +125,7 @@ function MessageInput({ onSend, roomMembers }) {
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder="Type a message..."
+                        placeholder="输入消息..."
                         className="pr-20"
                         disabled={uploading}
                     />
@@ -137,7 +137,7 @@ function MessageInput({ onSend, roomMembers }) {
                             size="icon"
                             className="h-8 w-8 text-muted-foreground hover:text-foreground"
                             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                            title="Add emoji"
+                            title="添加表情"
                         >
                             <Smile className="h-5 w-5" />
                         </Button>
@@ -155,7 +155,7 @@ function MessageInput({ onSend, roomMembers }) {
                                 emojiStyle={EmojiStyle.NATIVE}
                                 width={350}
                                 height={400}
-                                searchPlaceHolder="Search emoji..."
+                                searchPlaceHolder="搜索表情..."
                                 previewConfig={{
                                     showPreview: false
                                 }}

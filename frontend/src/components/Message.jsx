@@ -53,9 +53,10 @@ function Message({ message, isOwn, roomMembers }) {
                                 <img
                                     src={`${message.file_url}`}
                                     alt={message.file_name || 'Image'}
-                                    className="max-w-xs max-h-96 rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                                    className="max-w-full sm:max-w-[400px] max-h-[300px] w-auto h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity object-contain block"
                                     onError={() => setImageError(true)}
                                     onClick={() => window.open(`${message.file_url}`, '_blank')}
+                                    loading="lazy"
                                 />
                             ) : (
                                 <div className="flex items-center gap-3 p-3 bg-background/20 rounded-lg">

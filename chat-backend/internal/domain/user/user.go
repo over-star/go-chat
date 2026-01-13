@@ -21,13 +21,14 @@ type User struct {
 }
 
 type UserResponse struct {
-	ID       uint   `json:"id"`
-	Username string `json:"username"`
-	Nickname string `json:"nickname"`
-	Email    string `json:"email"`
-	Avatar   string `json:"avatar"`
-	Bio      string `json:"bio"`
-	Status   string `json:"status"`
+	ID           uint   `json:"id"`
+	Username     string `json:"username"`
+	Nickname     string `json:"nickname"`
+	Email        string `json:"email"`
+	Avatar       string `json:"avatar"`
+	Bio          string `json:"bio"`
+	Status       string `json:"status"`
+	FriendStatus string `json:"friend_status,omitempty"` // "pending", "accepted", or empty
 }
 
 func (u *User) ToResponse() UserResponse {
@@ -58,5 +59,6 @@ type Repository interface {
 	CreateGroup(group *FriendGroup) error
 	UpdateGroup(group *FriendGroup) error
 	DeleteGroup(id uint) error
-	SetFriendGroup(userID uint, friendID uint, groupID uint) error
+	SetFriendGroup(userID uint, friendID uint, groupID *uint) error
+	GetFriendStatus(userID uint, friendIDs []uint) (map[uint]string, error)
 }

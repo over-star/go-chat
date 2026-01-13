@@ -2,6 +2,7 @@ package http
 
 import (
 	"chat-backend/internal/app/command"
+	"chat-backend/pkg/utils"
 	"chat-backend/pkg/xerror"
 	"fmt"
 	"net/http"
@@ -32,7 +33,7 @@ func (h *MessageHandler) GetMessages(c *gin.Context) {
 
 	messages, err := h.messageApp.GetMessages(uint(roomID), limit, offset)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, xerror.New(xerror.CodeInternalError, err.Error()))
+		utils.Error(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -40,7 +41,7 @@ func (h *MessageHandler) GetMessages(c *gin.Context) {
 	for i, m := range messages {
 		responses[i] = m.ToResponse()
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 0, "data": responses})
+	utils.Success(c, responses)
 }
 
 func (h *MessageHandler) MarkAsRead(c *gin.Context) {
@@ -49,27 +50,27 @@ func (h *MessageHandler) MarkAsRead(c *gin.Context) {
 		MessageIDs []uint `json:"message_ids" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, xerror.New(xerror.CodeInvalidParams, err.Error()))
+		utils.ErrorWithCode(c, http.StatusBadRequest, xerror.CodeInvalidParams, err.Error())
 		return
 	}
 
 	if err := h.messageApp.MarkAsRead(req.MessageIDs, userID); err != nil {
-		c.JSON(http.StatusInternalServerError, err)
+		utils.Error(c, http.StatusInternalServerError, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "marked as read"})
+	utils.Message(c, "marked as read")
 }
 
 func (h *MessageHandler) UploadFile(c *gin.Context) {
 	file, err := c.FormFile("file")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, xerror.New(xerror.CodeInvalidParams, "no file uploaded"))
+		utils.ErrorWithCode(c, http.StatusBadRequest, xerror.CodeInvalidParams, "no file uploaded")
 		return
 	}
 
 	// Max 4MB check
 	if file.Size > 4*1024*1024 {
-		c.JSON(http.StatusBadRequest, xerror.New(xerror.CodeInvalidParams, "file size exceeds 4MB limit"))
+		utils.ErrorWithCode(c, http.StatusBadRequest, xerror.CodeInvalidParams, "file size exceeds 4MB limit")
 		return
 	}
 
@@ -84,19 +85,16 @@ func (h *MessageHandler) UploadFile(c *gin.Context) {
 	filepath := filepath.Join(uploadDir, filename)
 
 	if err := c.SaveUploadedFile(file, filepath); err != nil {
-		c.JSON(http.StatusInternalServerError, xerror.New(xerror.CodeInternalError, "failed to save file"))
+		utils.ErrorWithCode(c, http.StatusInternalServerError, xerror.CodeInternalError, "failed to save file")
 		return
 	}
 
 	// In a real app, this URL should be configurable
 	fileURL := fmt.Sprintf("/uploads/%s", filename)
 
-	c.JSON(http.StatusOK, gin.H{
-		"code": 0,
-		"data": gin.H{
-			"file_url":  fileURL,
-			"file_name": file.Filename,
-			"file_size": file.Size,
-		},
+	utils.Success(c, gin.H{
+		"file_url":  fileURL,
+		"file_name": file.Filename,
+		"file_size": file.Size,
 	})
 }

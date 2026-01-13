@@ -100,8 +100,22 @@ func (r *userRepo) DeleteGroup(id uint) error {
 	return r.db.Delete(&user.FriendGroup{}, id).Error
 }
 
-func (r *userRepo) SetFriendGroup(userID uint, friendID uint, groupID uint) error {
+func (r *userRepo) SetFriendGroup(userID uint, friendID uint, groupID *uint) error {
 	return r.db.Model(&user.Friend{}).
 		Where("user_id = ? AND friend_id = ?", userID, friendID).
 		Update("group_id", groupID).Error
+}
+
+func (r *userRepo) GetFriendStatus(userID uint, friendIDs []uint) (map[uint]string, error) {
+	var friends []user.Friend
+	err := r.db.Where("user_id = ? AND friend_id IN ?", userID, friendIDs).Find(&friends).Error
+	if err != nil {
+		return nil, err
+	}
+
+	statusMap := make(map[uint]string)
+	for _, f := range friends {
+		statusMap[f.FriendID] = string(f.Status)
+	}
+	return statusMap, nil
 }

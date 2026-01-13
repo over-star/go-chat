@@ -3,6 +3,7 @@ package http
 import (
 	"chat-backend/internal/app/command"
 	"chat-backend/pkg/xerror"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -57,7 +58,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	u, token, err := h.authApp.Login(req.Username, req.Password)
 	if err != nil {
-		if e, ok := err.(*xerror.Error); ok {
+		var e *xerror.Error
+		if errors.As(err, &e) {
 			status := http.StatusInternalServerError
 			if e.Code == xerror.CodeUnauthorized {
 				status = http.StatusUnauthorized
@@ -65,8 +67,6 @@ func (h *AuthHandler) Login(c *gin.Context) {
 				status = http.StatusNotFound
 			}
 			c.JSON(status, e)
-		} else {
-			c.JSON(http.StatusInternalServerError, xerror.New(xerror.CodeInternalError, err.Error()))
 		}
 		return
 	}

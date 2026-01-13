@@ -3,6 +3,7 @@ package http
 import (
 	"chat-backend/internal/app/command"
 	"chat-backend/internal/domain/room"
+	"chat-backend/pkg/utils"
 	"chat-backend/pkg/xerror"
 	"net/http"
 	"strconv"
@@ -29,23 +30,23 @@ func (h *RoomHandler) CreateRoom(c *gin.Context) {
 		MemberIDs []uint `json:"member_ids"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, xerror.New(xerror.CodeInvalidParams, err.Error()))
+		utils.ErrorWithCode(c, http.StatusBadRequest, xerror.CodeInvalidParams, err.Error())
 		return
 	}
 
 	rm, err := h.roomApp.CreateRoom(userID, req.Name, req.Type, req.MemberIDs)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, err)
+		utils.Error(c, http.StatusInternalServerError, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 0, "data": rm.ToResponse()})
+	utils.Success(c, rm.ToResponse())
 }
 
 func (h *RoomHandler) GetRooms(c *gin.Context) {
 	userID := c.MustGet("user_id").(uint)
 	rooms, err := h.roomApp.GetRooms(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, xerror.New(xerror.CodeInternalError, err.Error()))
+		utils.Error(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -82,7 +83,7 @@ func (h *RoomHandler) GetRooms(c *gin.Context) {
 
 		responses[i] = resp
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 0, "data": responses})
+	utils.Success(c, responses)
 }
 
 func (h *RoomHandler) GetRoom(c *gin.Context) {
@@ -91,10 +92,10 @@ func (h *RoomHandler) GetRoom(c *gin.Context) {
 
 	rm, err := h.roomApp.GetRoom(uint(roomID))
 	if err != nil {
-		c.JSON(http.StatusNotFound, err)
+		utils.Error(c, http.StatusNotFound, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 0, "data": rm.ToResponse()})
+	utils.Success(c, rm.ToResponse())
 }
 
 func (h *RoomHandler) DeleteRoom(c *gin.Context) {
@@ -105,20 +106,20 @@ func (h *RoomHandler) DeleteRoom(c *gin.Context) {
 	// Verify creator
 	rm, err := h.roomApp.GetRoom(uint(roomID))
 	if err != nil {
-		c.JSON(http.StatusNotFound, err)
+		utils.Error(c, http.StatusNotFound, err)
 		return
 	}
 
 	if rm.CreatorID != userID {
-		c.JSON(http.StatusForbidden, xerror.New(xerror.CodePermissionDenied, "only creator can delete room"))
+		utils.ErrorWithCode(c, http.StatusForbidden, xerror.CodePermissionDenied, "only creator can delete room")
 		return
 	}
 
 	if err := h.roomApp.DeleteRoom(uint(roomID)); err != nil {
-		c.JSON(http.StatusInternalServerError, err)
+		utils.Error(c, http.StatusInternalServerError, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "room deleted"})
+	utils.Message(c, "room deleted")
 }
 
 func (h *RoomHandler) AddMembers(c *gin.Context) {
@@ -130,15 +131,15 @@ func (h *RoomHandler) AddMembers(c *gin.Context) {
 		MemberIDs []uint `json:"member_ids" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, xerror.New(xerror.CodeInvalidParams, err.Error()))
+		utils.ErrorWithCode(c, http.StatusBadRequest, xerror.CodeInvalidParams, err.Error())
 		return
 	}
 
 	if err := h.roomApp.AddMembers(uint(roomID), userID, req.MemberIDs); err != nil {
-		c.JSON(http.StatusInternalServerError, err)
+		utils.Error(c, http.StatusInternalServerError, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "members added"})
+	utils.Message(c, "members added")
 }
 
 func (h *RoomHandler) RemoveMember(c *gin.Context) {
@@ -149,10 +150,10 @@ func (h *RoomHandler) RemoveMember(c *gin.Context) {
 	userID, _ := strconv.ParseUint(userIDStr, 10, 32)
 
 	if err := h.roomApp.RemoveMember(uint(roomID), operatorID, uint(userID)); err != nil {
-		c.JSON(http.StatusInternalServerError, err)
+		utils.Error(c, http.StatusInternalServerError, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "member removed"})
+	utils.Message(c, "member removed")
 }
 
 func (h *RoomHandler) LeaveRoom(c *gin.Context) {
@@ -161,8 +162,8 @@ func (h *RoomHandler) LeaveRoom(c *gin.Context) {
 	roomID, _ := strconv.ParseUint(roomIDStr, 10, 32)
 
 	if err := h.roomApp.LeaveRoom(uint(roomID), userID); err != nil {
-		c.JSON(http.StatusInternalServerError, err)
+		utils.Error(c, http.StatusInternalServerError, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "left room"})
+	utils.Message(c, "left room")
 }

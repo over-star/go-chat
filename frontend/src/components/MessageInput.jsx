@@ -41,6 +41,15 @@ function MessageInput({ onSend, roomMembers }) {
         const file = e.target.files?.[0]
         if (!file) return
 
+        // Limit file size to 4MB (matching backend)
+        const MAX_SIZE = 4 * 1024 * 1024
+        if (file.size > MAX_SIZE) {
+            alert('文件大小不能超过4MB')
+            if (fileInputRef.current) fileInputRef.current.value = ''
+            if (imageInputRef.current) imageInputRef.current.value = ''
+            return
+        }
+
         const formData = new FormData()
         formData.append('file', file)
 

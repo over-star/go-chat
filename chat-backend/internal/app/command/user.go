@@ -36,8 +36,36 @@ func (h *UserHandler) UpdateProfile(userID uint, nickname, avatar string) error 
 	return nil
 }
 
-func (h *UserHandler) SearchUsers(query string) ([]user.User, error) {
-	return h.userRepo.Search(query)
+func (h *UserHandler) SearchUsers(userID uint, query string) ([]user.UserResponse, error) {
+	users, err := h.userRepo.Search(query)
+	if err != nil {
+		return nil, err
+	}
+
+	var friendIDs []uint
+	for _, u := range users {
+		if u.ID != userID {
+			friendIDs = append(friendIDs, u.ID)
+		}
+	}
+
+	statusMap, err := h.userRepo.GetFriendStatus(userID, friendIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	responses := make([]user.UserResponse, 0, len(users))
+	for _, u := range users {
+		if u.ID == userID {
+			continue
+		}
+		res := u.ToResponse()
+		if status, ok := statusMap[u.ID]; ok {
+			res.FriendStatus = status
+		}
+		responses = append(responses, res)
+	}
+	return responses, nil
 }
 
 func (h *UserHandler) AddFriend(userID, friendID uint) error {
@@ -49,6 +77,18 @@ func (h *UserHandler) AddFriend(userID, friendID uint) error {
 	if err != nil {
 		return xerror.New(xerror.CodeNotFound, "user not found")
 	}
+
+	// Check if already friends or request pending
+	statusMap, err := h.userRepo.GetFriendStatus(userID, []uint{friendID})
+	if err == nil {
+		if status, ok := statusMap[friendID]; ok {
+			if status == string(user.FriendStatusAccepted) {
+				return xerror.New(xerror.CodeInvalidParams, "already friends")
+			}
+			return xerror.New(xerror.CodeInvalidParams, "friend request already sent")
+		}
+	}
+
 	return h.userRepo.AddFriend(userID, friendID)
 }
 
@@ -96,6 +136,6 @@ func (h *UserHandler) DeleteGroup(groupID uint) error {
 	return h.userRepo.DeleteGroup(groupID)
 }
 
-func (h *UserHandler) SetFriendGroup(userID uint, friendID uint, groupID uint) error {
+func (h *UserHandler) SetFriendGroup(userID uint, friendID uint, groupID *uint) error {
 	return h.userRepo.SetFriendGroup(userID, friendID, groupID)
 }

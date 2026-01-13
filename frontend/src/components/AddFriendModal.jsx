@@ -4,9 +4,11 @@ import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar'
 import { userService } from '../services/userService'
+import { useAuth } from '../context/AuthContext'
 import errorHandler from '../utils/errorHandler'
 
 export default function AddFriendModal({ onClose }) {
+    const { user: currentUser } = useAuth()
     const [searchQuery, setSearchQuery] = useState('')
     const [searchResults, setSearchResults] = useState([])
     const [loading, setLoading] = useState(false)
@@ -21,7 +23,10 @@ export default function AddFriendModal({ onClose }) {
 
         try {
             const response = await userService.searchUsers(query)
-            if (response.data) setSearchResults(response.data)
+            if (response.data) {
+                // Double check filtering on frontend
+                setSearchResults(response.data.filter(u => u.id !== currentUser?.id))
+            }
         } catch (error) {
             // Error handled by interceptor
         }
@@ -78,14 +83,24 @@ export default function AddFriendModal({ onClose }) {
                                         <AvatarFallback>{user.username[0]}</AvatarFallback>
                                     </Avatar>
                                     <span className="flex-1 font-medium">{user.username}</span>
-                                    <Button 
-                                        size="sm" 
-                                        onClick={() => handleAddFriend(user.id)}
-                                        disabled={loading}
-                                    >
-                                        <UserPlus className="h-4 w-4 mr-2" />
-                                        添加
-                                    </Button>
+                                    {user.friend_status === 'accepted' ? (
+                                        <Button size="sm" variant="ghost" disabled className="text-muted-foreground">
+                                            已添加
+                                        </Button>
+                                    ) : user.friend_status === 'pending' ? (
+                                        <Button size="sm" variant="ghost" disabled className="text-muted-foreground">
+                                            申请中
+                                        </Button>
+                                    ) : (
+                                        <Button 
+                                            size="sm" 
+                                            onClick={() => handleAddFriend(user.id)}
+                                            disabled={loading}
+                                        >
+                                            <UserPlus className="h-4 w-4 mr-2" />
+                                            添加
+                                        </Button>
+                                    )}
                                 </div>
                             ))}
                         </div>

@@ -32,40 +32,51 @@ A full-featured real-time chat application built with Go (backend) and React (fr
 
 ## Setup Instructions
 
-### Prerequisites
+### Option 1: Docker Deployment (Recommended)
+
+The easiest way to run the application is using Docker Compose. This will start the database, backend API, backend gateway, and frontend.
+
+1. Ensure you have [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/) installed.
+2. In the root directory, run:
+   ```bash
+   docker-compose up --build
+   ```
+3. Access the application:
+   - **Frontend**: `http://localhost`
+   - **Backend API**: `http://localhost/api`
+   - **WebSocket Gateway**: `ws://localhost/ws`
+
+### Option 2: Manual Setup
+
+#### Prerequisites
 - Go 1.21 or higher
 - Node.js 18 or higher
 - MySQL 8
 
-### Database Setup
+#### Database Setup
 
 1. Create a MySQL database:
 ```sql
 CREATE DATABASE chat_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-2. Update database credentials in `server/.env` (copy from `.env.example`):
-```env
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=your_password
-DB_NAME=chat_db
-JWT_SECRET=your-secret-key
-SERVER_PORT=8081
-```
+2. Update configuration in `chat-backend/configs/config.yaml`.
 
-### Backend Setup
+#### Backend Setup
 
 ```bash
-cd server
+cd chat-backend
 go mod tidy
-go run main.go
+# Run API service
+go run cmd/im-api/main.go
+# Run Gateway service (in another terminal)
+go run cmd/im-gateway/main.go
 ```
 
-The server will start on `http://localhost:8081` and automatically create database tables.
+- API Service: `http://localhost:8081`
+- Gateway Service: `ws://localhost:8082`
 
-### Frontend Setup
+#### Frontend Setup
 
 ```bash
 cd frontend
@@ -109,24 +120,28 @@ The frontend will start on `http://localhost:5173`
 
 ```
 chat/
-├── server/                 # Go backend
-│   ├── config/            # Configuration
-│   ├── handlers/          # HTTP handlers
-│   ├── middleware/        # Middleware (auth, CORS)
-│   ├── models/            # Database models
-│   ├── utils/             # Utility functions
-│   ├── websocket/         # WebSocket hub and client
-│   └── main.go            # Entry point
+├── chat-backend/           # Go backend
+│   ├── cmd/                # Entry points (api, gateway)
+│   ├── configs/            # Configuration files
+│   ├── internal/           # Internal business logic
+│   │   ├── app/            # Application layer
+│   │   ├── domain/         # Domain models
+│   │   ├── infrastructure/ # Persistence & external services
+│   │   └── interfaces/     # HTTP & WebSocket interfaces
+│   ├── pkg/                # Shared packages
+│   └── Dockerfile          # Backend Docker config
 │
-└── frontend/              # React frontend
-    ├── src/
-    │   ├── components/    # React components
-    │   ├── context/       # React context providers
-    │   ├── pages/         # Page components
-    │   ├── services/      # API services
-    │   ├── App.jsx        # Root component
-    │   └── main.jsx       # Entry point
-    └── package.json
+├── frontend/               # React frontend
+│   ├── src/
+│   │   ├── components/     # React components
+│   │   ├── context/        # Context providers
+│   │   ├── pages/          # Page components
+│   │   ├── services/       # API services
+│   │   └── App.jsx         # Root component
+│   ├── Dockerfile          # Frontend Docker config
+│   └── nginx.conf          # Nginx production config
+│
+└── docker-compose.yml       # Docker orchestration
 ```
 
 ## Usage

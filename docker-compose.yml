@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  im-api:
+    build:
+      context: ./chat-backend
+      dockerfile: Dockerfile
+    container_name: chat-im-api
+    restart: always
+    ports:
+      - "8081:8081"
+    depends_on:
+      - mysql
+    volumes:
+      - ./chat-backend/uploads:/app/uploads
+      - ./chat-backend/logs:/app/logs
+      - ./chat-backend/configs:/app/configs
+  im-gateway:
+    build:
+      context: ./chat-backend
+      dockerfile: Dockerfile
+    container_name: chat-im-gateway
+    restart: always
+    command: ["./im-gateway"]
+    ports:
+      - "8082:8082"
+    depends_on:
+      - mysql
+    volumes:
+      - ./chat-backend/logs:/app/logs
+      - ./chat-backend/configs:/app/configs
+  im-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: chat-im-frontend
+    restart: always
+    ports:
+      - "8080:80"
+    depends_on:
+      - im-api
+      - im-gateway

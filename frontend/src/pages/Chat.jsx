@@ -4,7 +4,11 @@ import { useAuth } from '../context/AuthContext'
 import Sidebar from '../components/Sidebar'
 import ChatArea from '../components/ChatArea'
 import RoomInfo from '../components/RoomInfo'
+import FriendDetail from '../components/FriendDetail'
 import { roomService } from '../services/roomService'
+import { userService } from '../services/userService'
+import { friendGroupService } from '../services/friendGroupService'
+import errorHandler from '../utils/errorHandler'
 import { useWebSocket } from '../context/WebSocketContext'
 import { Loader2 } from 'lucide-react'
 
@@ -14,6 +18,9 @@ function Chat() {
     const navigate = useNavigate()
     const [rooms, setRooms] = useState([])
     const [selectedRoom, setSelectedRoom] = useState(null)
+    const [selectedFriend, setSelectedFriend] = useState(null)
+    const [friends, setFriends] = useState([])
+    const [groups, setGroups] = useState([])
     const [loadingRooms, setLoadingRooms] = useState(true)
     const [showRoomInfo, setShowRoomInfo] = useState(false)
 
@@ -40,8 +47,20 @@ function Chat() {
                     }
                 }
             })
+            loadFriends()
         }
     }, [isAuthenticated])
+
+    const loadFriends = async () => {
+        try {
+            const [friendsRes, groupsRes] = await Promise.all([
+                userService.getFriends(),
+                friendGroupService.getGroups()
+            ])
+            if (friendsRes.data) setFriends(friendsRes.data)
+            if (groupsRes.data) setGroups(groupsRes.data)
+        } catch (error) { }
+    }
 
     const loadRooms = async () => {
         try {
@@ -60,6 +79,7 @@ function Chat() {
 
     const handleRoomSelect = (room) => {
         setSelectedRoom(room)
+        setSelectedFriend(null)
         if (room) {
             localStorage.setItem('lastRoomId', room.id.toString())
         }
@@ -78,6 +98,8 @@ function Chat() {
     }
 
     const handleRoomCreated = (newRoom) => {
+        // Clear selected friend when room is created (e.g. from starting a chat)
+        setSelectedFriend(null)
         // Check if room already exists (e.g., private chat room)
         const existingRoom = rooms.find(r => r.id === newRoom.id)
         if (existingRoom) {
@@ -98,6 +120,7 @@ function Chat() {
             if (selectedRoom?.id === roomId) {
                 const nextRoom = filtered[0] || null
                 setSelectedRoom(nextRoom)
+                setSelectedFriend(null)
                 if (nextRoom) {
                     localStorage.setItem('lastRoomId', nextRoom.id.toString())
                 } else {
@@ -136,6 +159,43 @@ function Chat() {
         }
     }, [lastMessage, selectedRoom, user])
 
+    const handleFriendSelect = (friend) => {
+        setSelectedFriend(friend)
+        setSelectedRoom(null)
+    }
+
+    const handleSendMessage = async (friend) => {
+        try {
+            const response = await roomService.createRoom(friend.friend_info.username, 'private', [friend.friend_info.id])
+            if (response.data) {
+                handleRoomCreated(response.data)
+            }
+        } catch (error) { }
+    }
+
+    const handleRemoveFriend = async (friendId) => {
+        try {
+            await userService.removeFriend(friendId)
+            errorHandler.success('好友已删除')
+            loadFriends()
+            if (selectedFriend?.friend_info.id === friendId) {
+                setSelectedFriend(null)
+            }
+        } catch (error) { }
+    }
+
+    const handleMoveGroup = async (friendId, groupId) => {
+        try {
+            const gid = groupId ? parseInt(groupId) : null
+            await friendGroupService.setFriendGroup(friendId, gid)
+            loadFriends()
+            // Update selected friend state to reflect group change
+            if (selectedFriend?.friend_info.id === friendId) {
+                setSelectedFriend(prev => prev ? { ...prev, group_id: gid } : null)
+            }
+        } catch (error) { }
+    }
+
     if (loading || loadingRooms) {
         return (
             <div className="h-screen flex items-center justify-center bg-background">
@@ -153,17 +213,32 @@ function Chat() {
                 onRoomSelect={handleRoomSelect}
                 onRoomCreated={handleRoomCreated}
                 onRoomDeleted={handleRoomDeleted}
+                selectedFriend={selectedFriend}
+                onFriendSelect={handleFriendSelect}
+                friends={friends}
+                groups={groups}
+                onFriendsRefresh={loadFriends}
                 user={user}
             />
 
             {/* Main Chat Area */}
             <div className="flex-1 flex flex-col">
-                <ChatArea
-                    room={selectedRoom}
-                    onToggleInfo={() => setShowRoomInfo(!showRoomInfo)}
-                    showRoomInfo={showRoomInfo}
-                    onMessagesRead={handleMessagesRead}
-                />
+                {selectedFriend ? (
+                    <FriendDetail
+                        friend={selectedFriend}
+                        groups={groups}
+                        onSendMessage={handleSendMessage}
+                        onRemoveFriend={handleRemoveFriend}
+                        onMoveGroup={handleMoveGroup}
+                    />
+                ) : (
+                    <ChatArea
+                        room={selectedRoom}
+                        onToggleInfo={() => setShowRoomInfo(!showRoomInfo)}
+                        showRoomInfo={showRoomInfo}
+                        onMessagesRead={handleMessagesRead}
+                    />
+                )}
             </div>
 
             {/* Room Info Panel */}

@@ -29,11 +29,9 @@ import {
     AlertDialogTitle,
 } from "./ui/alert-dialog"
 
-function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, onRoomDeleted, user }) {
+function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, onRoomDeleted, selectedFriend, onFriendSelect, friends, groups, onFriendsRefresh, user }) {
     const { logout } = useAuth()
     const [activeTab, setActiveTab] = useState('rooms')
-    const [friends, setFriends] = useState([])
-    const [groups, setGroups] = useState([])
     const [friendRequests, setFriendRequests] = useState([])
     const [showCreateRoom, setShowCreateRoom] = useState(false)
     const [showAddFriend, setShowAddFriend] = useState(false)
@@ -53,29 +51,16 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, onRoomDelet
 
     useEffect(() => {
         if (activeTab === 'friends') {
-            loadFriends()
+            onFriendsRefresh()
             loadFriendRequests()
         }
     }, [activeTab])
 
     useEffect(() => {
         if (showCreateRoom && friends.length === 0) {
-            loadFriends()
+            onFriendsRefresh()
         }
     }, [showCreateRoom])
-
-    const loadFriends = async () => {
-        try {
-            const [friendsRes, groupsRes] = await Promise.all([
-                userService.getFriends(),
-                friendGroupService.getGroups()
-            ])
-            if (friendsRes.data) setFriends(friendsRes.data)
-            if (groupsRes.data) setGroups(groupsRes.data)
-        } catch (error) {
-            // Global handler
-        }
-    }
 
     const handleRemoveFriend = async (friendId) => {
         setConfirmConfig({
@@ -84,7 +69,7 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, onRoomDelet
             onConfirm: async () => {
                 try {
                     await userService.removeFriend(friendId)
-                    loadFriends()
+                    onFriendsRefresh()
                     errorHandler.success('好友已删除')
                 } catch (error) { }
             }
@@ -94,7 +79,7 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, onRoomDelet
     const handleSetFriendGroup = async (friendId, groupId) => {
         try {
             await friendGroupService.setFriendGroup(friendId, groupId ? parseInt(groupId) : null)
-            loadFriends()
+            onFriendsRefresh()
         } catch (error) { }
     }
 
@@ -129,7 +114,7 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, onRoomDelet
     const handleAcceptFriend = async (friendId) => {
         try {
             await userService.acceptFriend(friendId)
-            loadFriends()
+            onFriendsRefresh()
             loadFriendRequests()
             errorHandler.success('好友申请已接受')
         } catch (error) {
@@ -350,7 +335,7 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, onRoomDelet
                         {showManageGroups && (
                             <ManageGroupsModal 
                                 groups={groups}
-                                onGroupsChange={loadFriends}
+                                onGroupsChange={onFriendsRefresh}
                                 onClose={() => setShowManageGroups(false)}
                             />
                         )}
@@ -374,6 +359,8 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, onRoomDelet
                                             <FriendItem
                                                 key={friend.id}
                                                 friend={friend}
+                                                isSelected={selectedFriend?.id === friend.id}
+                                                onClick={() => onFriendSelect(friend)}
                                                 onContextMenu={handleContextMenu}
                                             />
                                         ))}
@@ -398,6 +385,8 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, onRoomDelet
                                             <FriendItem
                                                 key={friend.id}
                                                 friend={friend}
+                                                isSelected={selectedFriend?.id === friend.id}
+                                                onClick={() => onFriendSelect(friend)}
                                                 onContextMenu={handleContextMenu}
                                             />
                                         ))}
@@ -574,11 +563,15 @@ function RoomItem({ room, isSelected, onClick, onDelete, currentUser }) {
     )
 }
 
-function FriendItem({ friend, onContextMenu }) {
+function FriendItem({ friend, isSelected, onClick, onContextMenu }) {
     return (
         <div 
+            onClick={onClick}
             onContextMenu={(e) => onContextMenu(e, friend)}
-            className="group flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer transition-colors"
+            className={cn(
+                "group flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors",
+                isSelected ? "bg-accent" : "hover:bg-accent/50"
+            )}
         >
             <div className="flex flex-1 items-center gap-2 min-w-0">
                 <Avatar className="h-8 w-8 ring-1 ring-border group-hover:ring-primary/20 transition-all">

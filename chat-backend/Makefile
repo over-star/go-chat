@@ -3,10 +3,10 @@
 BINARY=im-server
 
 build:
-	go build -o bin/$(BINARY) cmd/main.go
+	go build -o bin/$(BINARY) ./cmd/main.go
 
 run:
-	go run cmd/main.go
+	go run ./cmd/main.go
 
 test:
 	go test ./...

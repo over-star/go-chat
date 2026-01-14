@@ -11,6 +11,7 @@ import { friendGroupService } from '../services/friendGroupService'
 import errorHandler from '../utils/errorHandler'
 import { useWebSocket } from '../context/WebSocketContext'
 import { Loader2 } from 'lucide-react'
+import { cn } from '../lib/utils'
 
 function Chat() {
     const { user, isAuthenticated, loading } = useAuth()
@@ -23,6 +24,13 @@ function Chat() {
     const [groups, setGroups] = useState([])
     const [loadingRooms, setLoadingRooms] = useState(true)
     const [showRoomInfo, setShowRoomInfo] = useState(false)
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768)
+        window.addEventListener('resize', handleResize)
+        return () => window.removeEventListener('resize', handleResize)
+    }, [])
 
     useEffect(() => {
         if (!loading && !isAuthenticated) {
@@ -34,6 +42,9 @@ function Chat() {
         if (isAuthenticated) {
             loadRooms().then((loadedRooms) => {
                 if (loadedRooms && loadedRooms.length > 0) {
+                    // Skip auto-selection on mobile to show the room list first
+                    if (isMobile) return
+
                     const savedRoomId = localStorage.getItem('lastRoomId')
                     if (savedRoomId) {
                         const room = loadedRooms.find(r => r.id.toString() === savedRoomId)
@@ -49,7 +60,7 @@ function Chat() {
             })
             loadFriends()
         }
-    }, [isAuthenticated])
+    }, [isAuthenticated, isMobile])
 
     const loadFriends = async () => {
         try {
@@ -82,8 +93,8 @@ function Chat() {
         setSelectedFriend(null)
         if (room) {
             localStorage.setItem('lastRoomId', room.id.toString())
+            markRoomAsRead(room.id)
         }
-        markRoomAsRead(room.id)
     }
 
     const markRoomAsRead = (roomId) => {
@@ -196,6 +207,11 @@ function Chat() {
         } catch (error) { }
     }
 
+    const handleBack = () => {
+        setSelectedRoom(null)
+        setSelectedFriend(null)
+    }
+
     if (loading || loadingRooms) {
         return (
             <div className="h-screen flex items-center justify-center bg-background">
@@ -205,24 +221,32 @@ function Chat() {
     }
 
     return (
-        <div className="h-screen flex bg-background">
+        <div className="h-screen flex bg-background overflow-hidden">
             {/* Sidebar */}
-            <Sidebar
-                rooms={rooms}
-                selectedRoom={selectedRoom}
-                onRoomSelect={handleRoomSelect}
-                onRoomCreated={handleRoomCreated}
-                onRoomDeleted={handleRoomDeleted}
-                selectedFriend={selectedFriend}
-                onFriendSelect={handleFriendSelect}
-                friends={friends}
-                groups={groups}
-                onFriendsRefresh={loadFriends}
-                user={user}
-            />
+            <div className={cn(
+                "h-full transition-all duration-300 ease-in-out",
+                isMobile ? (selectedRoom || selectedFriend ? "w-0 overflow-hidden" : "w-full") : "w-80 border-r"
+            )}>
+                <Sidebar
+                    rooms={rooms}
+                    selectedRoom={selectedRoom}
+                    onRoomSelect={handleRoomSelect}
+                    onRoomCreated={handleRoomCreated}
+                    onRoomDeleted={handleRoomDeleted}
+                    selectedFriend={selectedFriend}
+                    onFriendSelect={handleFriendSelect}
+                    friends={friends}
+                    groups={groups}
+                    onFriendsRefresh={loadFriends}
+                    user={user}
+                />
+            </div>
 
             {/* Main Chat Area */}
-            <div className="flex-1 flex flex-col">
+            <div className={cn(
+                "flex-1 flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out",
+                isMobile && !(selectedRoom || selectedFriend) && "hidden"
+            )}>
                 {selectedFriend ? (
                     <FriendDetail
                         friend={selectedFriend}
@@ -230,6 +254,7 @@ function Chat() {
                         onSendMessage={handleSendMessage}
                         onRemoveFriend={handleRemoveFriend}
                         onMoveGroup={handleMoveGroup}
+                        onBack={handleBack}
                     />
                 ) : (
                     <ChatArea
@@ -237,18 +262,24 @@ function Chat() {
                         onToggleInfo={() => setShowRoomInfo(!showRoomInfo)}
                         showRoomInfo={showRoomInfo}
                         onMessagesRead={handleMessagesRead}
+                        onBack={handleBack}
                     />
                 )}
             </div>
 
             {/* Room Info Panel */}
             {showRoomInfo && selectedRoom && (
-                <RoomInfo
-                    room={selectedRoom}
-                    onClose={() => setShowRoomInfo(false)}
-                    onRoomDeleted={handleRoomDeleted}
-                    onRoomUpdated={handleRoomUpdated}
-                />
+                <div className={cn(
+                    "fixed inset-0 z-50 md:relative md:inset-auto md:z-0 md:w-80 md:border-l bg-background",
+                    isMobile && "w-full"
+                )}>
+                    <RoomInfo
+                        room={selectedRoom}
+                        onClose={() => setShowRoomInfo(false)}
+                        onRoomDeleted={handleRoomDeleted}
+                        onRoomUpdated={handleRoomUpdated}
+                    />
+                </div>
             )}
         </div>
     )

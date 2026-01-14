@@ -64,7 +64,7 @@ function RoomInfo({ room, onClose, onRoomDeleted, onRoomUpdated }) {
     }
 
     return (
-        <div className="w-80 border-l bg-card flex flex-col h-full">
+        <div className="w-full h-full bg-card flex flex-col">
             {/* Header */}
             <div className="p-4 border-b flex items-center justify-between">
                 <h3 className="font-semibold">聊天信息</h3>

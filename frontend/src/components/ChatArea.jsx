@@ -4,12 +4,12 @@ import { useWebSocket } from '../context/WebSocketContext'
 import { messageService } from '../services/messageService'
 import Message from './Message'
 import MessageInput from './MessageInput'
-import { Info, Hash, Users, Loader2, ArrowDown } from 'lucide-react'
+import { Info, Hash, Users, Loader2, ArrowDown, ChevronLeft } from 'lucide-react'
 import { Button } from './ui/button'
 import { ScrollArea } from './ui/scroll-area'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 
-function ChatArea({ room, onToggleInfo, showRoomInfo, onMessagesRead }) {
+function ChatArea({ room, onToggleInfo, showRoomInfo, onMessagesRead, onBack }) {
     const { user } = useAuth()
     const { lastMessage, sendChatMessage } = useWebSocket()
     const [messages, setMessages] = useState([])
@@ -232,27 +232,39 @@ function ChatArea({ room, onToggleInfo, showRoomInfo, onMessagesRead }) {
     return (
         <div className="flex-1 flex flex-col h-full relative">
             {/* Header */}
-            <div className="h-16 border-b bg-card px-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <Avatar>
-                        <AvatarImage src={displayAvatar} />
-                        <AvatarFallback>{displayName[0]?.toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                        <div className="flex items-center gap-2">
-                            {isGroup && <Hash className="h-4 w-4 text-muted-foreground" />}
-                            <h2 className="font-semibold">{displayName}</h2>
+            <div className="h-16 border-b bg-card px-4 flex items-center justify-between sticky top-0 z-10">
+                <div className="flex items-center gap-2">
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="md:hidden" 
+                        onClick={onBack}
+                    >
+                        <ChevronLeft className="h-6 w-6" />
+                    </Button>
+                    <div className="flex items-center gap-3">
+                        <Avatar className="h-9 w-9">
+                            <AvatarImage src={displayAvatar} />
+                            <AvatarFallback>{displayName[0]?.toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                            <div className="flex items-center gap-1">
+                                {isGroup && <Hash className="h-3 w-3 text-muted-foreground shrink-0" />}
+                                <h2 className="font-semibold truncate text-sm md:text-base">{displayName}</h2>
+                            </div>
+                            <p className="text-[10px] md:text-xs text-muted-foreground truncate">
+                                {isGroup
+                                    ? `${room.members?.length || 0} 位成员`
+                                    : '在线'}
+                            </p>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                            {isGroup
-                                ? `${room.members?.length || 0} 位成员`
-                                : '私聊'}
-                        </p>
                     </div>
                 </div>
-                <Button variant="ghost" size="icon" onClick={onToggleInfo}>
-                    <Info className="h-5 w-5" />
-                </Button>
+                <div className="flex items-center">
+                    <Button variant="ghost" size="icon" onClick={onToggleInfo}>
+                        <Info className="h-5 w-5" />
+                    </Button>
+                </div>
             </div>
 
             {/* Messages */}

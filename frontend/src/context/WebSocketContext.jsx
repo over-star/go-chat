@@ -19,6 +19,7 @@ export const WebSocketProvider = ({ children }) => {
     const [lastMessage, setLastMessage] = useState(null)
     const wsRef = useRef(null)
     const reconnectTimeoutRef = useRef(null)
+    const reconnectAttemptsRef = useRef(0)
     const messageHandlersRef = useRef([])
 
     useEffect(() => {
@@ -34,19 +35,21 @@ export const WebSocketProvider = ({ children }) => {
 
 
     const connectWebSocket = () => {
-        if (wsRef.current?.readyState === WebSocket.OPEN) {
+        if (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING) {
             return
         }
 
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
         const wsUrl = `${wsProtocol}//${window.location.host}/ws?user_id=${user.id}&token=${token}`
 
+        console.log('Connecting to WebSocket...')
         const ws = new WebSocket(wsUrl)
 
         ws.onopen = () => {
             console.log('WebSocket connected')
             setIsConnected(true)
-            errorHandler.success('Connected to chat server', { id: 'ws-status' })
+            reconnectAttemptsRef.current = 0
+            errorHandler.success('已连接到聊天服务器', { id: 'ws-status' })
         }
 
         ws.onmessage = (event) => {
@@ -71,25 +74,27 @@ export const WebSocketProvider = ({ children }) => {
         ws.onerror = (error) => {
             console.error('WebSocket error:', error)
             setIsConnected(false)
-            // Note: browser WebSocket API doesn't give error details for security reasons
-            errorHandler.error(error, 'Connection error', { id: 'ws-error' })
         }
 
         ws.onclose = (event) => {
             console.log('WebSocket disconnected', event)
             setIsConnected(false)
+            wsRef.current = null
 
             // Only attempt reconnect if not closing cleanly/intentionally
             // 1000 is normal closure
             if (isAuthenticated && event.code !== 1000) {
-                errorHandler.loading('Reconnecting to server...', { id: 'ws-status' })
+                const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000)
+                reconnectAttemptsRef.current += 1
+
+                errorHandler.loading(`连接已断开，${delay / 1000}秒后尝试重连...`, { id: 'ws-status' })
 
                 reconnectTimeoutRef.current = setTimeout(() => {
-                    console.log('Attempting to reconnect...')
+                    console.log(`Attempting to reconnect (attempt ${reconnectAttemptsRef.current})...`)
                     connectWebSocket()
-                }, 3000)
+                }, delay)
             } else if (event.code !== 1000) {
-                errorHandler.error(null, 'Disconnected from server', { id: 'ws-status' })
+                errorHandler.error(null, '已从服务器断开', { id: 'ws-status' })
             }
         }
 
@@ -114,6 +119,7 @@ export const WebSocketProvider = ({ children }) => {
             wsRef.current.send(JSON.stringify(message))
         } else {
             console.error('WebSocket is not connected')
+            errorHandler.error(null, '消息发送失败：未连接到服务器')
         }
     }
 

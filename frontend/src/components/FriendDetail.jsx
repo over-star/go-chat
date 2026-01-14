@@ -1,4 +1,4 @@
-import { MessageSquare, UserMinus, FolderInput } from 'lucide-react'
+import { MessageSquare, UserMinus, FolderInput, ChevronLeft } from 'lucide-react'
 import { Button } from './ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 import { Card, CardContent } from './ui/card'
@@ -15,7 +15,7 @@ import {
     AlertDialogTitle,
 } from "./ui/alert-dialog"
 
-function FriendDetail({ friend, groups, onSendMessage, onRemoveFriend, onMoveGroup }) {
+function FriendDetail({ friend, groups, onSendMessage, onRemoveFriend, onMoveGroup, onBack }) {
     const [showGroupSelect, setShowGroupSelect] = useState(false)
     const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -25,8 +25,18 @@ function FriendDetail({ friend, groups, onSendMessage, onRemoveFriend, onMoveGro
     const currentGroup = groups.find(g => g.id === friend.group_id)
 
     return (
-        <div className="flex-1 flex flex-col items-center justify-center p-8 bg-background">
-            <Card className="w-full max-w-md border-none shadow-none bg-transparent">
+        <div className="flex-1 flex flex-col p-4 md:p-8 bg-background relative">
+            <Button 
+                variant="ghost" 
+                size="icon" 
+                className="absolute left-4 top-4 md:hidden" 
+                onClick={onBack}
+            >
+                <ChevronLeft className="h-6 w-6" />
+            </Button>
+            
+            <div className="flex-1 flex flex-col items-center justify-center">
+                <Card className="w-full max-w-md border-none shadow-none bg-transparent">
                 <CardContent className="flex flex-col items-center space-y-8">
                     <Avatar className="h-32 w-32 ring-4 ring-background shadow-xl">
                         <AvatarImage src={friendInfo?.avatar} />
@@ -133,6 +143,7 @@ function FriendDetail({ friend, groups, onSendMessage, onRemoveFriend, onMoveGro
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            </div>
         </div>
     )
 }

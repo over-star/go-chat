@@ -164,7 +164,7 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, onRoomDelet
     }
 
     return (
-        <div className="w-80 border-r bg-card flex flex-col h-full">
+        <div className="w-full h-full bg-card flex flex-col">
             {/* Header */}
             <div className="p-4 border-b">
                 <div className="flex items-center justify-between mb-4">

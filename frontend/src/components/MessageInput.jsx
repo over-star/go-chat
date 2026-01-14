@@ -87,8 +87,8 @@ function MessageInput({ onSend, roomMembers }) {
     }
 
     return (
-        <div className="border-t bg-card p-4">
-            <form onSubmit={handleSubmit} className="flex items-end gap-2">
+        <div className="border-t bg-card p-2 md:p-4">
+            <form onSubmit={handleSubmit} className="flex items-end gap-1 md:gap-2">
                 <input
                     ref={imageInputRef}
                     type="file"
@@ -155,15 +155,15 @@ function MessageInput({ onSend, roomMembers }) {
                     {showEmojiPicker && (
                         <div
                             ref={emojiPickerRef}
-                            className="absolute bottom-full right-0 mb-2 z-50"
+                            className="absolute bottom-full right-0 mb-2 z-50 max-w-[calc(100vw-2rem)]"
                         >
                             <EmojiPicker
                                 onEmojiClick={onEmojiClick}
                                 autoFocusSearch={false}
                                 theme={Theme.AUTO}
                                 emojiStyle={EmojiStyle.NATIVE}
-                                width={350}
-                                height={400}
+                                width={window.innerWidth < 400 ? window.innerWidth - 32 : 350}
+                                height={window.innerWidth < 400 ? 300 : 400}
                                 searchPlaceHolder="搜索表情..."
                                 previewConfig={{
                                     showPreview: false

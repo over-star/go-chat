@@ -3,9 +3,11 @@ package ws
 import (
 	"chat-backend/internal/domain/chat"
 	"chat-backend/internal/domain/room"
+	"chat-backend/pkg/logger"
 	"encoding/json"
-	"log"
 	"sync"
+
+	"go.uber.org/zap"
 )
 
 type Hub struct {
@@ -44,7 +46,7 @@ func (h *Hub) Run() {
 			}
 			h.clients[client.UserID][client] = true
 			h.mu.Unlock()
-			log.Printf("Client registered: UserID=%d", client.UserID)
+			logger.L.Info("Client registered", zap.Uint("user_id", client.UserID))
 
 		case client := <-h.Unregister:
 			h.mu.Lock()
@@ -55,7 +57,7 @@ func (h *Hub) Run() {
 					if len(clients) == 0 {
 						delete(h.clients, client.UserID)
 					}
-					log.Printf("Client unregistered: UserID=%d", client.UserID)
+					logger.L.Info("Client unregistered", zap.Uint("user_id", client.UserID))
 				}
 			}
 			h.mu.Unlock()
@@ -106,21 +108,21 @@ func (h *Hub) handleChatMessage(client *Client, msg map[string]interface{}) {
 	}
 
 	if err := h.messageRepo.Create(chatMsg); err != nil {
-		log.Printf("failed to save message: %v", err)
+		logger.L.Error("failed to save message", zap.Error(err))
 		return
 	}
 
 	// Fetch message again to get sender info
 	savedMsg, err := h.messageRepo.GetByID(chatMsg.ID)
 	if err != nil {
-		log.Printf("failed to fetch saved message: %v", err)
+		logger.L.Error("failed to fetch saved message", zap.Error(err))
 		return
 	}
 
 	// Get room members to broadcast
 	rm, err := h.roomRepo.GetByID(roomID)
 	if err != nil {
-		log.Printf("failed to get room members: %v", err)
+		logger.L.Error("failed to get room members", zap.Error(err))
 		return
 	}
 

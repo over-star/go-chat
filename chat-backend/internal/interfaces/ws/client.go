@@ -1,10 +1,11 @@
 package ws
 
 import (
-	"log"
+	"chat-backend/pkg/logger"
 	"time"
 
 	"github.com/gorilla/websocket"
+	"go.uber.org/zap"
 )
 
 const (
@@ -47,7 +48,7 @@ func (c *Client) ReadPump() {
 		_, message, err := c.Conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("error: %v", err)
+				logger.L.Error("websocket read error", zap.Error(err))
 			}
 			break
 		}

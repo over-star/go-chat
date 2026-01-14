@@ -2,13 +2,14 @@ package http
 
 import (
 	"chat-backend/internal/interfaces/ws"
+	"chat-backend/pkg/logger"
 	"chat-backend/pkg/utils"
-	"log"
 	"strconv"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 type RouterOptions struct {
@@ -103,7 +104,7 @@ func NewRouter(opts RouterOptions) *gin.Engine {
 		upgrader := ws.GetUpgrader()
 		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 		if err != nil {
-			log.Printf("failed to upgrade: %v", err)
+			logger.L.Error("failed to upgrade websocket", zap.Error(err))
 			return
 		}
 

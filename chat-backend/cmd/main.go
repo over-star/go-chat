@@ -10,6 +10,7 @@ import (
 	"log"
 
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -20,6 +21,7 @@ func main() {
 
 	// 2. Init Logger
 	initLogger()
+	defer logger.Sync()
 
 	// 3. Init DB
 	db := initDB()
@@ -27,7 +29,7 @@ func main() {
 	// 4. Initialize App using Wire
 	application, cleanup, err := wire.InitializeApp(db)
 	if err != nil {
-		log.Fatalf("failed to initialize app: %v", err)
+		logger.L.Fatal("failed to initialize app", zap.Error(err))
 	}
 	defer cleanup()
 
@@ -39,9 +41,9 @@ func main() {
 	if port == "" {
 		port = "8081"
 	}
-	log.Printf("IM Combined Server starting on port %s", port)
+	logger.L.Info("IM Combined Server starting", zap.String("port", port))
 	if err := application.Engine.Run(":" + port); err != nil {
-		log.Fatalf("failed to start server: %v", err)
+		logger.L.Fatal("failed to start server", zap.Error(err))
 	}
 }
 
@@ -56,14 +58,33 @@ func initConfig() {
 }
 
 func initLogger() {
-	logger.Init(logger.Config{
+	cfg := logger.Config{
 		Filename:   viper.GetString("log.filename"),
 		MaxSize:    viper.GetInt("log.max_size"),
 		MaxBackups: viper.GetInt("log.max_backups"),
 		MaxAge:     viper.GetInt("log.max_age"),
 		Compress:   viper.GetBool("log.compress"),
 		Level:      viper.GetString("log.level"),
-	})
+	}
+
+	// Set default values if not configured
+	if cfg.Filename == "" {
+		cfg.Filename = "logs/server.log"
+	}
+	if cfg.Level == "" {
+		cfg.Level = "info"
+	}
+	if cfg.MaxSize == 0 {
+		cfg.MaxSize = 100
+	}
+	if cfg.MaxBackups == 0 {
+		cfg.MaxBackups = 7
+	}
+	if cfg.MaxAge == 0 {
+		cfg.MaxAge = 30
+	}
+
+	logger.Init(cfg)
 }
 
 func initDB() *gorm.DB {
@@ -78,7 +99,7 @@ func initDB() *gorm.DB {
 	)
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("failed to connect to database: %v", err)
+		logger.L.Fatal("failed to connect to database", zap.Error(err))
 	}
 
 	// Auto Migrate
@@ -91,7 +112,7 @@ func initDB() *gorm.DB {
 		&chat.Message{},
 		&chat.ReadReceipt{},
 	); err != nil {
-		log.Printf("Auto migration warning: %v", err)
+		logger.L.Warn("Auto migration warning", zap.Error(err))
 	}
 	return db
 }

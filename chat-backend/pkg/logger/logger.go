@@ -20,7 +20,14 @@ type Config struct {
 }
 
 func Init(cfg Config) {
-	writeSyncer := getLogWriter(cfg.Filename, cfg.MaxSize, cfg.MaxBackups, cfg.MaxAge, cfg.Compress)
+	var syncers []zapcore.WriteSyncer
+	syncers = append(syncers, zapcore.AddSync(os.Stdout))
+
+	if cfg.Filename != "" {
+		writeSyncer := getLogWriter(cfg.Filename, cfg.MaxSize, cfg.MaxBackups, cfg.MaxAge, cfg.Compress)
+		syncers = append(syncers, writeSyncer)
+	}
+
 	encoder := getEncoder()
 	var l = new(zapcore.Level)
 	err := l.UnmarshalText([]byte(cfg.Level))
@@ -28,12 +35,17 @@ func Init(cfg Config) {
 		*l = zapcore.InfoLevel
 	}
 
-	// Create a multi-writer to output to both file and console
-	multiSyncer := zapcore.NewMultiWriteSyncer(writeSyncer, zapcore.AddSync(zapcore.Lock(os.Stdout)))
-
+	multiSyncer := zapcore.NewMultiWriteSyncer(syncers...)
 	core := zapcore.NewCore(encoder, multiSyncer, l)
 
 	L = zap.New(core, zap.AddCaller())
+	zap.ReplaceGlobals(L)
+}
+
+func Sync() {
+	if L != nil {
+		_ = L.Sync()
+	}
 }
 
 func getEncoder() zapcore.Encoder {

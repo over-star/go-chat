@@ -9,18 +9,16 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build binaries
-RUN go build -o im-api cmd/im-api/main.go
-RUN go build -o im-gateway cmd/im-gateway/main.go
+# Build binary
+RUN go build -o im-server cmd/main.go
 
 # Final stage
 FROM alpine:latest
 
 WORKDIR /app
 
-# Copy binaries from builder
-COPY --from=builder /app/im-api .
-COPY --from=builder /app/im-gateway .
+# Copy binary from builder
+COPY --from=builder /app/im-server .
 
 # Copy configs directory (ensure it contains config.yaml)
 COPY configs/ /app/configs/
@@ -28,8 +26,8 @@ COPY configs/ /app/configs/
 # Create necessary directories
 RUN mkdir logs uploads
 
-# Expose ports
-EXPOSE 8081 8082
+# Expose port
+EXPOSE 8081
 
-# Default command (can be overridden in docker-compose)
-CMD ["./im-api"]
+# Default command
+CMD ["./im-server"]

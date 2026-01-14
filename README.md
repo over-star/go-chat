@@ -43,8 +43,7 @@ The easiest way to run the application is using Docker Compose. This will start 
    ```
 3. Access the application:
    - **Frontend**: `http://localhost`
-   - **Backend API**: `http://localhost/api`
-   - **WebSocket Gateway**: `ws://localhost/ws`
+   - **Backend Server**: `http://localhost/api` & `ws://localhost/ws`
 
 ### Option 2: Manual Setup
 
@@ -67,14 +66,11 @@ CREATE DATABASE chat_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```bash
 cd chat-backend
 go mod tidy
-# Run API service
-go run cmd/im-api/main.go
-# Run Gateway service (in another terminal)
-go run cmd/im-gateway/main.go
+# Run Combined service
+go run cmd/main.go
 ```
 
-- API Service: `http://localhost:8081`
-- Gateway Service: `ws://localhost:8082`
+- Backend Service: `http://localhost:8081` (API & WS)
 
 #### Frontend Setup
 
@@ -121,7 +117,7 @@ The frontend will start on `http://localhost:5173`
 ```
 chat/
 ├── chat-backend/           # Go backend
-│   ├── cmd/                # Entry points (api, gateway)
+│   ├── cmd/                # Entry point (main.go)
 │   ├── configs/            # Configuration files
 │   ├── internal/           # Internal business logic
 │   │   ├── app/            # Application layer

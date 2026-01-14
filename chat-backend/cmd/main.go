@@ -7,9 +7,12 @@ import (
 	"chat-backend/internal/domain/user"
 	"chat-backend/internal/infrastructure/persistence"
 	"chat-backend/internal/interfaces/http"
+	"chat-backend/internal/interfaces/ws"
 	"chat-backend/pkg/logger"
+	"chat-backend/pkg/utils"
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -23,10 +26,12 @@ func main() {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath("configs")       // For running from chat-backend root
-	viper.AddConfigPath("../../configs") // For running from cmd/im-api
+	viper.AddConfigPath("../configs")    // For running from cmd/
+	viper.AddConfigPath("../../configs") // For running from deep subdirs
+	viper.AddConfigPath(".")
 
 	if err := viper.ReadInConfig(); err != nil {
-		log.Fatalf("Fatal error config file: %v", err)
+		log.Printf("Warning: error config file: %v", err)
 	}
 	viper.AutomaticEnv()
 
@@ -48,7 +53,7 @@ func main() {
 	dbName := viper.GetString("db.name")
 
 	if dbHost == "" || dbPort == "" {
-		log.Fatalf("Database configuration is missing (host: %s, port: %s)", dbHost, dbPort)
+		log.Printf("Warning: Database configuration might be missing (host: %s, port: %s)", dbHost, dbPort)
 	}
 
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
@@ -69,7 +74,7 @@ func main() {
 		&chat.Message{},
 		&chat.ReadReceipt{},
 	); err != nil {
-		log.Fatalf("failed to auto migrate: %v", err)
+		log.Printf("Auto migration warning: %v", err)
 	}
 
 	// 4. Init Repo & App & Handler
@@ -87,7 +92,11 @@ func main() {
 	roomHandler := http.NewRoomHandler(roomApp, db)
 	messageHandler := http.NewMessageHandler(messageApp)
 
-	// 5. Setup Gin
+	// 5. Init Hub
+	hub := ws.NewHub(messageRepo, roomRepo)
+	go hub.Run()
+
+	// 6. Setup Gin
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(http.LoggerMiddleware())
@@ -101,6 +110,7 @@ func main() {
 		jwtSecret = "your-secret-key"
 	}
 
+	// API Routes
 	api := r.Group("/api")
 	{
 		auth := api.Group("/auth")
@@ -145,11 +155,49 @@ func main() {
 		}
 	}
 
-	// 6. Start Server
+	// WebSocket Route
+	r.GET("/ws", func(c *gin.Context) {
+		userIDStr := c.Query("user_id")
+		token := c.Query("token")
+
+		if userIDStr == "" || token == "" {
+			c.JSON(401, gin.H{"error": "Unauthorized"})
+			return
+		}
+
+		claims, err := utils.ValidateToken(token, jwtSecret)
+		if err != nil {
+			c.JSON(401, gin.H{"error": "Unauthorized"})
+			return
+		}
+
+		userID, _ := strconv.ParseUint(userIDStr, 10, 32)
+		if uint(userID) != claims.UserID {
+			c.JSON(401, gin.H{"error": "Unauthorized"})
+			return
+		}
+
+		upgrader := ws.GetUpgrader()
+		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+		if err != nil {
+			log.Printf("failed to upgrade: %v", err)
+			return
+		}
+
+		client := ws.NewClient(hub, conn, uint(userID))
+		hub.Register <- client
+
+		go client.WritePump()
+		go client.ReadPump()
+	})
+
+	// 7. Start Server
 	port := viper.GetString("server.port")
 	if port == "" {
 		port = "8081"
 	}
-	log.Printf("im-api starting on port %s", port)
-	r.Run(":" + port)
+	log.Printf("IM Combined Server starting on port %s", port)
+	if err := r.Run(":" + port); err != nil {
+		log.Fatalf("failed to start server: %v", err)
+	}
 }

@@ -19,7 +19,7 @@ type Friend struct {
 	FriendID  uint         `gorm:"index;not null" json:"friend_id"`
 	Status    FriendStatus `gorm:"size:20;not null;default:'pending'" json:"status"`
 	GroupID   *uint        `json:"group_id"`
-	User      User         `gorm:"foreignKey:UserID" json:"-"`
+	User      User         `gorm:"foreignKey:UserID" json:"user"`
 	Friend    User         `gorm:"foreignKey:FriendID" json:"friend_info"`
 }
 

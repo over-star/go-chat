@@ -162,10 +162,10 @@ function FriendCheckbox({ friend, isSelected, onToggle }) {
                 onChange={onToggle}
             />
             <Avatar className="h-8 w-8">
-                <AvatarImage src={friend.friend_info.avatar} />
-                <AvatarFallback>{friend.friend_info.username[0]}</AvatarFallback>
+                <AvatarImage src={friend.friend_info?.avatar} />
+                <AvatarFallback>{friend.friend_info?.username?.[0]}</AvatarFallback>
             </Avatar>
-            <span className="text-sm font-medium">{friend.friend_info.username}</span>
+            <span className="text-sm font-medium">{friend.friend_info?.username}</span>
         </label>
     )
 }

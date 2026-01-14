@@ -288,11 +288,11 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, onRoomDelet
                                     {friendRequests.map(request => (
                                         <div key={request.id} className="flex items-center gap-2 p-2 rounded-md hover:bg-accent">
                                             <Avatar className="h-8 w-8">
-                                                <AvatarImage src={request.user.avatar} />
-                                                <AvatarFallback>{request.user.username[0]}</AvatarFallback>
+                                                <AvatarImage src={request.user?.avatar} />
+                                                <AvatarFallback>{request.user?.username?.[0]}</AvatarFallback>
                                             </Avatar>
-                                            <span className="flex-1 text-sm truncate">{request.user.username}</span>
-                                            <Button size="sm" className="h-7 px-2 text-xs" onClick={() => handleAcceptFriend(request.user.id)}>
+                                            <span className="flex-1 text-sm truncate">{request.user?.username}</span>
+                                            <Button size="sm" className="h-7 px-2 text-xs" onClick={() => handleAcceptFriend(request.user?.id)}>
                                                 接受
                                             </Button>
                                         </div>
@@ -575,11 +575,11 @@ function FriendItem({ friend, isSelected, onClick, onContextMenu }) {
         >
             <div className="flex flex-1 items-center gap-2 min-w-0">
                 <Avatar className="h-8 w-8 ring-1 ring-border group-hover:ring-primary/20 transition-all">
-                    <AvatarImage src={friend.friend_info.avatar} />
-                    <AvatarFallback className="bg-muted text-muted-foreground text-[10px]">{friend.friend_info.username[0]?.toUpperCase()}</AvatarFallback>
+                    <AvatarImage src={friend.friend_info?.avatar} />
+                    <AvatarFallback className="bg-muted text-muted-foreground text-[10px]">{friend.friend_info?.username?.[0]?.toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{friend.friend_info.username}</p>
+                    <p className="text-sm font-medium truncate">{friend.friend_info?.username}</p>
                 </div>
             </div>
         </div>

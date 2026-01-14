@@ -79,8 +79,8 @@ export default function AddFriendModal({ onClose }) {
                             {searchResults.map(user => (
                                 <div key={user.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent border border-transparent hover:border-border transition-all">
                                     <Avatar>
-                                        <AvatarImage src={user.avatar} />
-                                        <AvatarFallback>{user.username[0]}</AvatarFallback>
+                                        <AvatarImage src={user?.avatar} />
+                                        <AvatarFallback>{user?.username?.[0]}</AvatarFallback>
                                     </Avatar>
                                     <span className="flex-1 font-medium">{user.username}</span>
                                     {user.friend_status === 'accepted' ? (

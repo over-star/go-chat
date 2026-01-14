@@ -29,9 +29,9 @@ function FriendDetail({ friend, groups, onSendMessage, onRemoveFriend, onMoveGro
             <Card className="w-full max-w-md border-none shadow-none bg-transparent">
                 <CardContent className="flex flex-col items-center space-y-8">
                     <Avatar className="h-32 w-32 ring-4 ring-background shadow-xl">
-                        <AvatarImage src={friendInfo.avatar} />
+                        <AvatarImage src={friendInfo?.avatar} />
                         <AvatarFallback className="text-4xl font-bold bg-primary/10 text-primary">
-                            {friendInfo.username[0]?.toUpperCase()}
+                            {friendInfo?.username?.[0]?.toUpperCase()}
                         </AvatarFallback>
                     </Avatar>
                     

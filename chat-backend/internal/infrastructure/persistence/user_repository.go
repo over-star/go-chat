@@ -69,12 +69,37 @@ func (r *userRepo) AddFriend(userID uint, friendID uint) error {
 }
 
 func (r *userRepo) AcceptFriend(userID uint, friendID uint) error {
-	// Update status for both sides (or just one depending on design)
-	// Original logic had it one way. I'll stick to original logic if I can find it.
-	// In the original models, it's a simple status update.
-	return r.db.Model(&user.Friend{}).
-		Where("user_id = ? AND friend_id = ?", friendID, userID).
-		Update("status", user.FriendStatusAccepted).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		// Update original request: friendID -> userID
+		if err := tx.Model(&user.Friend{}).
+			Where("user_id = ? AND friend_id = ?", friendID, userID).
+			Update("status", user.FriendStatusAccepted).Error; err != nil {
+			return err
+		}
+
+		// Create reciprocal record: userID -> friendID
+		// Use FirstOrCreate or check existence to be safe
+		var reciprocal user.Friend
+		err := tx.Where("user_id = ? AND friend_id = ?", userID, friendID).First(&reciprocal).Error
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				f := user.Friend{
+					UserID:   userID,
+					FriendID: friendID,
+					Status:   user.FriendStatusAccepted,
+				}
+				return tx.Create(&f).Error
+			}
+			return err
+		}
+
+		// If reciprocal record exists (e.g. both sent requests), update it to accepted
+		if reciprocal.Status != user.FriendStatusAccepted {
+			return tx.Model(&reciprocal).Update("status", user.FriendStatusAccepted).Error
+		}
+
+		return nil
+	})
 }
 
 func (r *userRepo) RemoveFriend(userID uint, friendID uint) error {

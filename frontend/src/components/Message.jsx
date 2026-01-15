@@ -1,10 +1,25 @@
-import { File, Image as ImageIcon, Check, CheckCheck, Download } from 'lucide-react'
+import { File, Image as ImageIcon, Check, CheckCheck, Download, X } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 import { cn } from '../lib/utils'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 function Message({ message, isOwn, roomMembers }) {
     const [imageError, setImageError] = useState(false)
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false)
+
+    useEffect(() => {
+        const handleEsc = (e) => {
+            if (e.key === 'Escape') setIsPreviewOpen(false)
+        }
+        if (isPreviewOpen) {
+            window.addEventListener('keydown', handleEsc)
+            document.body.style.overflow = 'hidden'
+        }
+        return () => {
+            window.removeEventListener('keydown', handleEsc)
+            document.body.style.overflow = 'unset'
+        }
+    }, [isPreviewOpen])
 
     const formatTime = (timestamp) => {
         if (!timestamp) return ''
@@ -50,14 +65,57 @@ function Message({ message, isOwn, roomMembers }) {
                     {message.type === 'image' && (
                         <div className="space-y-2">
                             {!imageError ? (
-                                <img
-                                    src={`${message.file_url}`}
-                                    alt={message.file_name || 'Image'}
-                                    className="max-w-full sm:max-w-[400px] max-h-[300px] w-auto h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity object-contain block"
-                                    onError={() => setImageError(true)}
-                                    onClick={() => window.open(`${message.file_url}`, '_blank')}
-                                    loading="lazy"
-                                />
+                                <>
+                                    <img
+                                        src={`${message.file_url}`}
+                                        alt={message.file_name || 'Image'}
+                                        className="max-w-full sm:max-w-[400px] max-h-[300px] w-auto h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity object-contain block"
+                                        onError={() => setImageError(true)}
+                                        onClick={() => setIsPreviewOpen(true)}
+                                        loading="lazy"
+                                    />
+                                    {isPreviewOpen && (
+                                        <div 
+                                            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+                                            onClick={() => setIsPreviewOpen(false)}
+                                        >
+                                            <div className="relative max-w-5xl w-full h-full flex flex-col items-center justify-center p-8">
+                                                <button 
+                                                    className="absolute top-4 right-4 z-[110] p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-all hover:scale-110"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setIsPreviewOpen(false);
+                                                    }}
+                                                >
+                                                    <X className="h-6 w-6" />
+                                                </button>
+                                                
+                                                <div 
+                                                    className="relative flex items-center justify-center w-full h-full"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <img
+                                                        src={`${message.file_url}`}
+                                                        alt={message.file_name}
+                                                        className="max-w-full max-h-full object-contain rounded-sm shadow-2xl select-none animate-in zoom-in-95 duration-200"
+                                                    />
+                                                    
+                                                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-4">
+                                                        <a
+                                                            href={`${message.file_url}`}
+                                                            download={message.file_name}
+                                                            className="flex items-center gap-2 px-6 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all text-sm font-medium backdrop-blur-md border border-white/10 hover:border-white/20 shadow-lg"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            <Download className="h-4 w-4" />
+                                                            下载原图
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
                             ) : (
                                 <div className="flex items-center gap-3 p-3 bg-background/20 rounded-lg">
                                     <ImageIcon className="h-8 w-8" />

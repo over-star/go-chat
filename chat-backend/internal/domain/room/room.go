@@ -34,6 +34,7 @@ type RoomMember struct {
 
 type RoomResponse struct {
 	ID          uint                `json:"id"`
+	CreatedAt   time.Time           `json:"created_at"`
 	Name        string              `json:"name"`
 	Avatar      string              `json:"avatar"`
 	Type        RoomType            `json:"type"`
@@ -51,6 +52,7 @@ func (r *Room) ToResponse() RoomResponse {
 
 	return RoomResponse{
 		ID:        r.ID,
+		CreatedAt: r.CreatedAt,
 		Name:      r.Name,
 		Avatar:    r.Avatar,
 		Type:      r.Type,

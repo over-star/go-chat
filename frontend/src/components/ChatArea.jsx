@@ -26,25 +26,21 @@ function ChatArea({ room, onToggleInfo, showRoomInfo, onMessagesRead, onBack }) 
     const isInitialLoadRef = useRef(true)
 
     const scrollToBottom = useCallback((behavior = 'smooth') => {
+        const actualBehavior = typeof behavior === 'string' ? behavior : 'smooth'
         // Try using ref first
         if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior })
+            messagesEndRef.current.scrollIntoView({ behavior: actualBehavior, block: 'end' })
         } else {
             // Fallback to manual scrolling
             const scrollContainer = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]')
             if (scrollContainer) {
-                scrollContainer.scrollTop = scrollContainer.scrollHeight
+                const scrollContent = scrollContainer.querySelector('div')
+                scrollContainer.scrollTop = scrollContent ? scrollContent.scrollHeight : scrollContainer.scrollHeight
             }
         }
         setShowNewMessageArrow(false)
         setNewMessageCount(0)
     }, [])
-
-    const handleScroll = useCallback((e) => {
-        const scrollContainer = e.target
-        const isNearBottom = scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight < 100
-        setShowNewMessageArrow(!isNearBottom && messages.length > 0)
-    }, [messages.length])
 
     useEffect(() => {
         if (room) {
@@ -185,7 +181,8 @@ function ChatArea({ room, onToggleInfo, showRoomInfo, onMessagesRead, onBack }) 
             setLoadingMore(true)
             const nextPage = page + 1
             const scrollContainer = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]')
-            const previousScrollHeight = scrollContainer?.scrollHeight || 0
+            const scrollContent = scrollContainer?.querySelector('div')
+            const previousScrollHeight = scrollContent?.scrollHeight || scrollContainer?.scrollHeight || 0
 
             const response = await messageService.getMessages(room.id, nextPage, 20)
             if (response.data) {
@@ -200,7 +197,8 @@ function ChatArea({ room, onToggleInfo, showRoomInfo, onMessagesRead, onBack }) 
                     // Maintain scroll position
                     setTimeout(() => {
                         if (scrollContainer) {
-                            const newScrollHeight = scrollContainer.scrollHeight
+                            const currentScrollContent = scrollContainer.querySelector('div')
+                            const newScrollHeight = currentScrollContent?.scrollHeight || scrollContainer.scrollHeight
                             scrollContainer.scrollTop = newScrollHeight - previousScrollHeight
                         }
                     }, 0)
@@ -348,7 +346,7 @@ function ChatArea({ room, onToggleInfo, showRoomInfo, onMessagesRead, onBack }) 
                     <Button
                         size="icon"
                         className="shadow-lg rounded-full h-10 w-10"
-                        onClick={scrollToBottom}
+                        onClick={() => scrollToBottom()}
                     >
                         <ArrowDown className="h-5 w-5" />
                     </Button>

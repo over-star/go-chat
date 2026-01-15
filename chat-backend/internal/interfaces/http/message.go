@@ -2,6 +2,7 @@ package http
 
 import (
 	"chat-backend/internal/app/command"
+	"chat-backend/internal/interfaces/ws"
 	"chat-backend/pkg/utils"
 	"chat-backend/pkg/xerror"
 	"fmt"
@@ -16,10 +17,11 @@ import (
 
 type MessageHandler struct {
 	messageApp *command.MessageHandler
+	hub        *ws.Hub
 }
 
-func NewMessageHandler(messageApp *command.MessageHandler) *MessageHandler {
-	return &MessageHandler{messageApp: messageApp}
+func NewMessageHandler(messageApp *command.MessageHandler, hub *ws.Hub) *MessageHandler {
+	return &MessageHandler{messageApp: messageApp, hub: hub}
 }
 
 func (h *MessageHandler) GetMessages(c *gin.Context) {
@@ -58,6 +60,15 @@ func (h *MessageHandler) MarkAsRead(c *gin.Context) {
 		utils.Error(c, http.StatusInternalServerError, err)
 		return
 	}
+
+	// Broadcast read receipt via websocket
+	if len(req.MessageIDs) > 0 {
+		m, err := h.messageApp.GetByID(req.MessageIDs[0])
+		if err == nil {
+			h.hub.BroadcastReadReceipt(m.RoomID, req.MessageIDs, userID)
+		}
+	}
+
 	utils.Message(c, "marked as read")
 }
 

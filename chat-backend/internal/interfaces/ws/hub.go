@@ -175,11 +175,38 @@ func (h *Hub) handleTypingStatus(client *Client, msg map[string]interface{}) {
 
 func (h *Hub) handleReadReceipt(client *Client, msg map[string]interface{}) {
 	messageID := uint(msg["message_id"].(float64))
+
+	// Get message to find roomID
+	m, err := h.messageRepo.GetByID(messageID)
+	if err != nil {
+		return
+	}
+
 	if err := h.messageRepo.MarkAsRead([]uint{messageID}, client.UserID); err != nil {
 		return
 	}
 
-	// Logic to notify other members about read receipt can be added here
+	h.BroadcastReadReceipt(m.RoomID, []uint{messageID}, client.UserID)
+}
+
+func (h *Hub) BroadcastReadReceipt(roomID uint, messageIDs []uint, userID uint) {
+	rm, err := h.roomRepo.GetByID(roomID)
+	if err != nil {
+		return
+	}
+
+	response, _ := json.Marshal(map[string]interface{}{
+		"type": "read_receipt",
+		"data": map[string]interface{}{
+			"room_id":     roomID,
+			"message_ids": messageIDs,
+			"user_id":     userID,
+		},
+	})
+
+	for _, member := range rm.Members {
+		h.SendToUser(member.ID, response)
+	}
 }
 
 func (h *Hub) SendToUser(userID uint, message []byte) {

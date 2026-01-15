@@ -17,6 +17,10 @@ func (h *MessageHandler) GetMessages(roomID uint, limit, offset int) ([]chat.Mes
 	return h.messageRepo.GetByRoomID(roomID, limit, offset)
 }
 
+func (h *MessageHandler) GetByID(id uint) (*chat.Message, error) {
+	return h.messageRepo.GetByID(id)
+}
+
 func (h *MessageHandler) MarkAsRead(messageIDs []uint, userID uint) error {
 	return h.messageRepo.MarkAsRead(messageIDs, userID)
 }

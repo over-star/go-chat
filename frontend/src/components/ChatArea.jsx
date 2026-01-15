@@ -133,8 +133,24 @@ function ChatArea({ room, onToggleInfo, showRoomInfo, onMessagesRead, onBack }) 
                     }
                 }, 50)
             }
+        } else if (lastMessage && lastMessage.type === 'read_receipt' && lastMessage.data) {
+            const { room_id, message_ids, user_id } = lastMessage.data
+            if (room_id === room?.id) {
+                setMessages(prev => prev.map(m => {
+                    if (message_ids.includes(m.id)) {
+                        const alreadyRead = m.read_by?.some(r => r.user_id === user_id)
+                        if (!alreadyRead) {
+                            return {
+                                ...m,
+                                read_by: [...(m.read_by || []), { user_id, read_at: new Date().toISOString() }]
+                            }
+                        }
+                    }
+                    return m
+                }))
+            }
         }
-    }, [lastMessage, room, scrollToBottom])
+    }, [lastMessage, room, scrollToBottom, user?.id])
 
     const loadMessages = async (pageNum = 1, isInitial = false) => {
         if (!room) return

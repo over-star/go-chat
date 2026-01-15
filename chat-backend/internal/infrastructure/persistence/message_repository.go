@@ -20,7 +20,7 @@ func (r *messageRepo) Create(m *chat.Message) error {
 
 func (r *messageRepo) GetByID(id uint) (*chat.Message, error) {
 	var m chat.Message
-	err := r.db.Preload("Sender").First(&m, id).Error
+	err := r.db.Preload("Sender").Preload("ReadBy").First(&m, id).Error
 	return &m, err
 }
 
@@ -28,6 +28,7 @@ func (r *messageRepo) GetByRoomID(roomID uint, limit int, offset int) ([]chat.Me
 	var messages []chat.Message
 	err := r.db.Where("room_id = ?", roomID).
 		Preload("Sender").
+		Preload("ReadBy").
 		Order("created_at desc").
 		Limit(limit).
 		Offset(offset).

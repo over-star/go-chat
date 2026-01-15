@@ -29,6 +29,7 @@ type Message struct {
 	FileName  string         `json:"file_name,omitempty"`
 	FileSize  int64          `json:"file_size,omitempty"`
 	Mentions  []uint         `gorm:"serializer:json" json:"mentions,omitempty"`
+	ReadBy    []ReadReceipt  `gorm:"foreignKey:MessageID" json:"read_by"`
 }
 
 type MessageResponse struct {
@@ -42,6 +43,7 @@ type MessageResponse struct {
 	FileName  string              `json:"file_name,omitempty"`
 	FileSize  int64               `json:"file_size,omitempty"`
 	Mentions  []uint              `json:"mentions,omitempty"`
+	ReadBy    []ReadReceipt       `json:"read_by"`
 }
 
 func (m *Message) ToResponse() MessageResponse {
@@ -56,6 +58,7 @@ func (m *Message) ToResponse() MessageResponse {
 		FileName:  m.FileName,
 		FileSize:  m.FileSize,
 		Mentions:  m.Mentions,
+		ReadBy:    m.ReadBy,
 	}
 }
 

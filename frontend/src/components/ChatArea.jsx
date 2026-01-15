@@ -54,7 +54,6 @@ function ChatArea({ room, onToggleInfo, showRoomInfo, onMessagesRead, onBack }) 
                 setHasMore(true)
                 isInitialLoadRef.current = true
                 loadMessages(1, true)
-                markMessagesAsRead()
                 currentRoomIdRef.current = room.id
             }
         } else {
@@ -99,6 +98,11 @@ function ChatArea({ room, onToggleInfo, showRoomInfo, onMessagesRead, onBack }) 
                     return [...prev, newMsg]
                 })
 
+                // Mark as read immediately if it's from someone else
+                if (newMsg.sender?.id !== user?.id) {
+                    markMessagesAsRead([newMsg])
+                }
+
                 // Use setTimeout to ensure DOM has updated
                 setTimeout(() => {
                     const scrollContainer = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]')
@@ -135,6 +139,7 @@ function ChatArea({ room, onToggleInfo, showRoomInfo, onMessagesRead, onBack }) 
                 if (isInitial) {
                     setMessages(newMessages)
                     setHasMore(response.data.length === 20)
+                    markMessagesAsRead(newMessages)
                     setTimeout(scrollToBottom, 100)
                 } else {
                     setMessages(prev => [...newMessages, ...prev])
@@ -165,6 +170,7 @@ function ChatArea({ room, onToggleInfo, showRoomInfo, onMessagesRead, onBack }) 
                     setMessages(prev => [...newMessages, ...prev])
                     setPage(nextPage)
                     setHasMore(response.data.length === 20)
+                    markMessagesAsRead(newMessages)
 
                     // Maintain scroll position
                     setTimeout(() => {
@@ -184,10 +190,12 @@ function ChatArea({ room, onToggleInfo, showRoomInfo, onMessagesRead, onBack }) 
         }
     }
 
-    const markMessagesAsRead = async () => {
+    const markMessagesAsRead = async (messagesToMark = null) => {
         if (!room) return
 
-        const unreadMessages = messages.filter(m => m.sender?.id !== user?.id)
+        const targetMessages = messagesToMark || messages
+        const unreadMessages = targetMessages.filter(m => m.sender?.id !== user?.id)
+        
         if (unreadMessages.length > 0) {
             try {
                 const messageIds = unreadMessages.map(m => m.id)

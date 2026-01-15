@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { MessageCircle, Mail, Lock, User, Loader2 } from 'lucide-react'
 import { Button } from '../components/ui/button'
@@ -11,7 +11,14 @@ function Login() {
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
     const [loading, setLoading] = useState(false)
-    const { login } = useAuth()
+    const { login, isAuthenticated } = useAuth()
+    const navigate = useNavigate()
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            navigate('/chat', { replace: true })
+        }
+    }, [isAuthenticated, navigate])
 
     const handleSubmit = async (e) => {
         e.preventDefault()

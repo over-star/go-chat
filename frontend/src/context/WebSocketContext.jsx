@@ -15,6 +15,7 @@ export const useWebSocket = () => {
 export const WebSocketProvider = ({ children }) => {
     const { user, token, isAuthenticated } = useAuth()
     const [isConnected, setIsConnected] = useState(false)
+    const [isConnecting, setIsConnecting] = useState(false)
     const [messages, setMessages] = useState([])
     const [lastMessage, setLastMessage] = useState(null)
     const wsRef = useRef(null)
@@ -35,10 +36,11 @@ export const WebSocketProvider = ({ children }) => {
 
 
     const connectWebSocket = () => {
-        if (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING) {
+        if (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING || isConnecting) {
             return
         }
 
+        setIsConnecting(true)
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
         const wsUrl = `${wsProtocol}//${window.location.host}/ws?user_id=${user.id}&token=${token}`
 
@@ -48,6 +50,7 @@ export const WebSocketProvider = ({ children }) => {
         ws.onopen = () => {
             console.log('WebSocket connected')
             setIsConnected(true)
+            setIsConnecting(false)
             reconnectAttemptsRef.current = 0
             errorHandler.success('已连接到聊天服务器', { id: 'ws-status' })
         }
@@ -74,11 +77,13 @@ export const WebSocketProvider = ({ children }) => {
         ws.onerror = (error) => {
             console.error('WebSocket error:', error)
             setIsConnected(false)
+            setIsConnecting(false)
         }
 
         ws.onclose = (event) => {
             console.log('WebSocket disconnected', event)
             setIsConnected(false)
+            setIsConnecting(false)
             wsRef.current = null
 
             // Only attempt reconnect if not closing cleanly/intentionally

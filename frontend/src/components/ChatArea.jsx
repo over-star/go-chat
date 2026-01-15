@@ -25,10 +25,10 @@ function ChatArea({ room, onToggleInfo, showRoomInfo, onMessagesRead, onBack }) 
     const currentRoomIdRef = useRef(null)
     const isInitialLoadRef = useRef(true)
 
-    const scrollToBottom = useCallback(() => {
+    const scrollToBottom = useCallback((behavior = 'smooth') => {
         // Try using ref first
         if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+            messagesEndRef.current.scrollIntoView({ behavior })
         } else {
             // Fallback to manual scrolling
             const scrollContainer = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]')
@@ -89,6 +89,16 @@ function ChatArea({ room, onToggleInfo, showRoomInfo, onMessagesRead, onBack }) 
     }, [messages.length, hasMore, loadingMore, loading])
 
     useEffect(() => {
+        if (isInitialLoadRef.current && messages.length > 0 && !loading) {
+            const timer = setTimeout(() => {
+                scrollToBottom('auto')
+                isInitialLoadRef.current = false
+            }, 100)
+            return () => clearTimeout(timer)
+        }
+    }, [messages, loading, scrollToBottom])
+
+    useEffect(() => {
         if (lastMessage && lastMessage.type === 'message' && lastMessage.data?.message) {
             const newMsg = lastMessage.data.message
             if (newMsg.room_id === room?.id) {
@@ -140,7 +150,6 @@ function ChatArea({ room, onToggleInfo, showRoomInfo, onMessagesRead, onBack }) 
                     setMessages(newMessages)
                     setHasMore(response.data.length === 20)
                     markMessagesAsRead(newMessages)
-                    setTimeout(scrollToBottom, 100)
                 } else {
                     setMessages(prev => [...newMessages, ...prev])
                     setHasMore(response.data.length === 20)

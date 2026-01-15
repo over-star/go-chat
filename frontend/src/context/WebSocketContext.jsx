@@ -148,6 +148,7 @@ export const WebSocketProvider = ({ children }) => {
         }
 
         setIsConnected(false)
+        errorHandler.dismiss('ws-status')
     }
 
     const startHeartbeat = () => {

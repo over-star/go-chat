@@ -116,7 +116,7 @@ const getErrorType = (error) => {
 /**
  * Show error toast notification
  */
-export const showError = (error, customMessage = null) => {
+export const showError = (error, customMessage = null, options = {}) => {
     const message = customMessage || extractErrorMessage(error)
     const errorType = getErrorType(error)
 
@@ -124,6 +124,7 @@ export const showError = (error, customMessage = null) => {
         duration: 5000,
         dismissible: true,
         className: 'error-toast',
+        ...options,
     })
 
     // Log error for debugging
@@ -168,8 +169,8 @@ export const showWarning = (message, options = {}) => {
 /**
  * Show loading toast
  */
-export const showLoading = (message = '加载中...') => {
-    return toast.loading(message)
+export const showLoading = (message = '加载中...', options = {}) => {
+    return toast.loading(message, options)
 }
 
 /**

@@ -20,15 +20,20 @@ export const WebSocketProvider = ({ children }) => {
     const [lastMessage, setLastMessage] = useState(null)
     const wsRef = useRef(null)
     const reconnectTimeoutRef = useRef(null)
+    const heartbeatIntervalRef = useRef(null)
     const reconnectAttemptsRef = useRef(0)
     const messageHandlersRef = useRef([])
+    const isConnectingRef = useRef(false)
+    const intentionalDisconnectRef = useRef(false)
 
     useEffect(() => {
         if (isAuthenticated && user && token) {
+            intentionalDisconnectRef.current = false
             connectWebSocket()
         }
 
         return () => {
+            intentionalDisconnectRef.current = true
             disconnectWebSocket()
         }
     }, [isAuthenticated, user, token])
@@ -36,13 +41,21 @@ export const WebSocketProvider = ({ children }) => {
 
 
     const connectWebSocket = () => {
-        if (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING || isConnecting) {
+        if (wsRef.current?.readyState === WebSocket.OPEN || 
+            wsRef.current?.readyState === WebSocket.CONNECTING || 
+            isConnectingRef.current) {
             return
         }
 
+        isConnectingRef.current = true
         setIsConnecting(true)
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-        const wsUrl = `${wsProtocol}//${window.location.host}/ws?user_id=${user.id}&token=${token}`
+        // 对 Token 和 UserID 进行编码，防止特殊字符干扰
+        const params = new URLSearchParams({
+            user_id: user.id,
+            token: token
+        }).toString()
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws?${params}`
 
         console.log('Connecting to WebSocket...')
         const ws = new WebSocket(wsUrl)
@@ -51,8 +64,12 @@ export const WebSocketProvider = ({ children }) => {
             console.log('WebSocket connected')
             setIsConnected(true)
             setIsConnecting(false)
+            isConnectingRef.current = false
             reconnectAttemptsRef.current = 0
             errorHandler.success('已连接到聊天服务器', { id: 'ws-status' })
+
+            // 开始心跳
+            startHeartbeat()
         }
 
         ws.onmessage = (event) => {
@@ -78,27 +95,40 @@ export const WebSocketProvider = ({ children }) => {
             console.error('WebSocket error:', error)
             setIsConnected(false)
             setIsConnecting(false)
+            isConnectingRef.current = false
         }
 
         ws.onclose = (event) => {
             console.log('WebSocket disconnected', event)
             setIsConnected(false)
             setIsConnecting(false)
+            isConnectingRef.current = false
             wsRef.current = null
 
-            // Only attempt reconnect if not closing cleanly/intentionally
-            // 1000 is normal closure
-            if (isAuthenticated && event.code !== 1000) {
+            // 停止心跳
+            stopHeartbeat()
+
+            // 清除之前的重连定时器
+            if (reconnectTimeoutRef.current) {
+                clearTimeout(reconnectTimeoutRef.current)
+                reconnectTimeoutRef.current = null
+            }
+
+            // 只有在非主动断开且已登录的情况下才尝试重连
+            // 1000 是正常关闭
+            if (!intentionalDisconnectRef.current && isAuthenticated && event.code !== 1000) {
                 const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000)
                 reconnectAttemptsRef.current += 1
 
                 errorHandler.loading(`连接已断开，${delay / 1000}秒后尝试重连...`, { id: 'ws-status' })
 
                 reconnectTimeoutRef.current = setTimeout(() => {
-                    console.log(`Attempting to reconnect (attempt ${reconnectAttemptsRef.current})...`)
-                    connectWebSocket()
+                    if (!intentionalDisconnectRef.current && isAuthenticated) {
+                        console.log(`Attempting to reconnect (attempt ${reconnectAttemptsRef.current})...`)
+                        connectWebSocket()
+                    }
                 }, delay)
-            } else if (event.code !== 1000) {
+            } else if (!intentionalDisconnectRef.current && event.code !== 1000) {
                 errorHandler.error(null, '已从服务器断开', { id: 'ws-status' })
             }
         }
@@ -107,6 +137,7 @@ export const WebSocketProvider = ({ children }) => {
     }
 
     const disconnectWebSocket = () => {
+        stopHeartbeat()
         if (reconnectTimeoutRef.current) {
             clearTimeout(reconnectTimeoutRef.current)
         }
@@ -117,6 +148,22 @@ export const WebSocketProvider = ({ children }) => {
         }
 
         setIsConnected(false)
+    }
+
+    const startHeartbeat = () => {
+        stopHeartbeat()
+        heartbeatIntervalRef.current = setInterval(() => {
+            if (wsRef.current?.readyState === WebSocket.OPEN) {
+                wsRef.current.send(JSON.stringify({ type: 'ping' }))
+            }
+        }, 20000) // 每 20 秒发送一次
+    }
+
+    const stopHeartbeat = () => {
+        if (heartbeatIntervalRef.current) {
+            clearInterval(heartbeatIntervalRef.current)
+            heartbeatIntervalRef.current = null
+        }
     }
 
     const sendMessage = (message) => {

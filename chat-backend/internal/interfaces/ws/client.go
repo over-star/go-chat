@@ -10,7 +10,7 @@ import (
 
 const (
 	writeWait      = 10 * time.Second
-	pongWait       = 60 * time.Second
+	pongWait       = 30 * time.Second
 	pingPeriod     = (pongWait * 9) / 10
 	maxMessageSize = 512 * 1024
 )
@@ -52,6 +52,9 @@ func (c *Client) ReadPump() {
 			}
 			break
 		}
+		// 每次收到消息都重置读取超时时间
+		c.Conn.SetReadDeadline(time.Now().Add(pongWait))
+
 		// Handle message - ideally send to Hub or App layer
 		c.Hub.Broadcast <- &BroadcastMessage{
 			Client:  c,

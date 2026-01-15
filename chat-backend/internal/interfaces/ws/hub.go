@@ -76,12 +76,25 @@ func (h *Hub) handleIncomingMessage(client *Client, raw []byte, msg map[string]i
 	msgType, _ := msg["type"].(string)
 
 	switch msgType {
+	case "ping":
+		h.handlePing(client)
 	case "message":
 		h.handleChatMessage(client, msg)
 	case "typing":
 		h.handleTypingStatus(client, msg)
 	case "read_receipt":
 		h.handleReadReceipt(client, msg)
+	}
+}
+
+func (h *Hub) handlePing(client *Client) {
+	response, _ := json.Marshal(map[string]interface{}{
+		"type": "pong",
+	})
+	select {
+	case client.send <- response:
+	default:
+		// Client buffer full
 	}
 }
 

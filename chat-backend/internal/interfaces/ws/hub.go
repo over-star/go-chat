@@ -174,22 +174,17 @@ func (h *Hub) handleTypingStatus(client *Client, msg map[string]interface{}) {
 }
 
 func (h *Hub) handleReadReceipt(client *Client, msg map[string]interface{}) {
+	roomID := uint(msg["room_id"].(float64))
 	messageID := uint(msg["message_id"].(float64))
 
-	// Get message to find roomID
-	m, err := h.messageRepo.GetByID(messageID)
-	if err != nil {
+	if err := h.messageRepo.MarkAsRead(roomID, client.UserID, messageID); err != nil {
 		return
 	}
 
-	if err := h.messageRepo.MarkAsRead([]uint{messageID}, client.UserID); err != nil {
-		return
-	}
-
-	h.BroadcastReadReceipt(m.RoomID, []uint{messageID}, client.UserID)
+	h.BroadcastReadReceipt(roomID, messageID, client.UserID)
 }
 
-func (h *Hub) BroadcastReadReceipt(roomID uint, messageIDs []uint, userID uint) {
+func (h *Hub) BroadcastReadReceipt(roomID uint, lastReadMessageID uint, userID uint) {
 	rm, err := h.roomRepo.GetByID(roomID)
 	if err != nil {
 		return
@@ -198,9 +193,9 @@ func (h *Hub) BroadcastReadReceipt(roomID uint, messageIDs []uint, userID uint) 
 	response, _ := json.Marshal(map[string]interface{}{
 		"type": "read_receipt",
 		"data": map[string]interface{}{
-			"room_id":     roomID,
-			"message_ids": messageIDs,
-			"user_id":     userID,
+			"room_id":              roomID,
+			"last_read_message_id": lastReadMessageID,
+			"user_id":              userID,
 		},
 	})
 

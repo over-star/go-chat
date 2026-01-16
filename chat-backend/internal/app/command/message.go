@@ -21,8 +21,8 @@ func (h *MessageHandler) GetByID(id uint) (*chat.Message, error) {
 	return h.messageRepo.GetByID(id)
 }
 
-func (h *MessageHandler) MarkAsRead(messageIDs []uint, userID uint) error {
-	return h.messageRepo.MarkAsRead(messageIDs, userID)
+func (h *MessageHandler) MarkAsRead(roomID uint, userID uint, lastReadMessageID uint) error {
+	return h.messageRepo.MarkAsRead(roomID, userID, lastReadMessageID)
 }
 
 func (h *MessageHandler) CreateMessage(m *chat.Message) error {

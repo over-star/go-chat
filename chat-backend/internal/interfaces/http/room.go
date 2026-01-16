@@ -2,6 +2,7 @@ package http
 
 import (
 	"chat-backend/internal/app/command"
+	"chat-backend/internal/domain/chat"
 	"chat-backend/internal/domain/room"
 	"chat-backend/pkg/utils"
 	"chat-backend/pkg/xerror"
@@ -53,15 +54,28 @@ func (h *RoomHandler) GetRooms(c *gin.Context) {
 	responses := make([]room.RoomResponse, len(rooms))
 	for i, rm := range rooms {
 		resp := rm.ToResponse()
-		// Count unread messages
+		
+		// 1. Get Read Status for all members in this room
+		var readReceipts []chat.ReadReceipt
+		h.db.Table("read_receipts").Where("room_id = ?", rm.ID).Find(&readReceipts)
+		resp.ReadStatus = readReceipts
+
+		// 2. Count unread messages for current user
+		var lastReadID uint
+		for _, r := range readReceipts {
+			if r.UserID == userID {
+				lastReadID = r.LastReadMessageID
+				break
+			}
+		}
+
 		var count int64
 		h.db.Table("messages").
-			Joins("LEFT JOIN read_receipts ON read_receipts.message_id = messages.id AND read_receipts.user_id = ?", userID).
-			Where("messages.room_id = ? AND messages.sender_id != ? AND read_receipts.id IS NULL", rm.ID, userID).
+			Where("room_id = ? AND sender_id != ? AND id > ?", rm.ID, userID, lastReadID).
 			Count(&count)
 		resp.UnreadCount = count
 
-		// Get last message
+		// 3. Get last message
 		var lastMsg struct {
 			ID        uint      `json:"id"`
 			Content   string    `json:"content"`
@@ -89,13 +103,33 @@ func (h *RoomHandler) GetRooms(c *gin.Context) {
 func (h *RoomHandler) GetRoom(c *gin.Context) {
 	roomIDStr := c.Param("id")
 	roomID, _ := strconv.ParseUint(roomIDStr, 10, 32)
+	userID := c.MustGet("user_id").(uint)
 
 	rm, err := h.roomApp.GetRoom(uint(roomID))
 	if err != nil {
 		utils.Error(c, http.StatusNotFound, err)
 		return
 	}
-	utils.Success(c, rm.ToResponse())
+	
+	resp := rm.ToResponse()
+	// Get Read Status
+	var readReceipts []chat.ReadReceipt
+	h.db.Table("read_receipts").Where("room_id = ?", rm.ID).Find(&readReceipts)
+	resp.ReadStatus = readReceipts
+
+	// Count unread
+	var lastReadID uint
+	for _, r := range readReceipts {
+		if r.UserID == userID {
+			lastReadID = r.LastReadMessageID
+			break
+		}
+	}
+	h.db.Table("messages").
+		Where("room_id = ? AND sender_id != ? AND id > ?", rm.ID, userID, lastReadID).
+		Count(&resp.UnreadCount)
+
+	utils.Success(c, resp)
 }
 
 func (h *RoomHandler) DeleteRoom(c *gin.Context) {

@@ -1,6 +1,7 @@
 package room
 
 import (
+	"chat-backend/internal/domain/chat"
 	"chat-backend/internal/domain/user"
 	"time"
 
@@ -40,6 +41,7 @@ type RoomResponse struct {
 	Type        RoomType            `json:"type"`
 	CreatorID   uint                `json:"creator_id"`
 	Members     []user.UserResponse `json:"members"`
+	ReadStatus  []chat.ReadReceipt  `json:"read_status"`
 	UnreadCount int64               `json:"unread_count"`
 	LastMessage interface{}         `json:"last_message"`
 }

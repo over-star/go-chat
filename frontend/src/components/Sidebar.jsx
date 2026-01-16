@@ -29,9 +29,8 @@ import {
     AlertDialogTitle,
 } from "./ui/alert-dialog"
 
-function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, onRoomDeleted, selectedFriend, onFriendSelect, friends, groups, onFriendsRefresh, user }) {
+function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, onRoomDeleted, selectedFriend, onFriendSelect, friends, groups, onFriendsRefresh, user, activeTab, onTabChange }) {
     const { logout } = useAuth()
-    const [activeTab, setActiveTab] = useState('rooms')
     const [friendRequests, setFriendRequests] = useState([])
     const [showCreateRoom, setShowCreateRoom] = useState(false)
     const [showAddFriend, setShowAddFriend] = useState(false)
@@ -128,7 +127,7 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, onRoomDelet
             const response = await roomService.createRoom(friend.friend_info.username, 'private', [friend.friend_info.id])
             if (response.data) {
                 onRoomCreated(response.data)
-                setActiveTab('rooms')
+                onTabChange('rooms')
             }
         } catch (error) {
             // Global handler
@@ -164,7 +163,7 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, onRoomDelet
     }
 
     return (
-        <div className="w-full h-full bg-card flex flex-col">
+        <Tabs value={activeTab} onValueChange={onTabChange} className="w-full h-full bg-card flex flex-col">
             {/* Header */}
             <div className="p-4 border-b">
                 <div className="flex items-center justify-between mb-4">
@@ -193,23 +192,21 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, onRoomDelet
                 </div>
 
                 {/* Tabs */}
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="rooms" className="text-xs">
-                            <MessageCircle className="h-3 w-3 mr-1" />
-                            聊天
-                        </TabsTrigger>
-                        <TabsTrigger value="friends" className="text-xs relative">
-                            <Users className="h-3 w-3 mr-1" />
-                            好友
-                            {friendRequests.length > 0 && (
-                                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center">
-                                    {friendRequests.length}
-                                </span>
-                            )}
-                        </TabsTrigger>
-                    </TabsList>
-                </Tabs>
+                <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="rooms" className="text-xs">
+                        <MessageCircle className="h-3 w-3 mr-1" />
+                        聊天
+                    </TabsTrigger>
+                    <TabsTrigger value="friends" className="text-xs relative">
+                        <Users className="h-3 w-3 mr-1" />
+                        好友
+                        {friendRequests.length > 0 && (
+                            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center">
+                                {friendRequests.length}
+                            </span>
+                        )}
+                    </TabsTrigger>
+                </TabsList>
             </div>
 
             {/* Actions */}
@@ -232,8 +229,9 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, onRoomDelet
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
             <ScrollArea className="flex-1">
-                {activeTab === 'rooms' ? (
+                <TabsContent value="rooms" className="m-0 border-none outline-none">
                     <div className="p-2">
                         <Button onClick={() => setShowCreateRoom(true)} className="w-full mb-2">
                             <Plus className="h-4 w-4 mr-2" />
@@ -276,7 +274,9 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, onRoomDelet
                             </div>
                         )}
                     </div>
-                ) : (
+                </TabsContent>
+
+                <TabsContent value="friends" className="m-0 border-none outline-none">
                     <div className="p-2 space-y-4">
                         {/* Friend Requests */}
                         {friendRequests.length > 0 && (
@@ -395,9 +395,8 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, onRoomDelet
                             })()}
                         </div>
                     </div>
-                )}
+                </TabsContent>
             </ScrollArea>
-
             {showProfile && (
                 <ProfileModal 
                     onClose={() => setShowProfile(false)} 
@@ -475,7 +474,7 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, onRoomDelet
                     </button>
                 </div>
             )}
-        </div>
+        </Tabs>
     )
 }
 

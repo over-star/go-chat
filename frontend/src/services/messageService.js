@@ -15,8 +15,8 @@ export const messageService = {
         return response.data
     },
 
-    markAsRead: async (messageIds) => {
-        const response = await api.post('/messages/read', { message_ids: messageIds })
+    markAsRead: async (roomId, messageId) => {
+        const response = await api.post('/messages/read', { room_id: roomId, message_id: messageId })
         return response.data
     },
 }

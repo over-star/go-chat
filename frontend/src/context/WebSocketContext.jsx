@@ -209,9 +209,10 @@ export const WebSocketProvider = ({ children }) => {
         })
     }
 
-    const sendReadReceipt = (messageId) => {
+    const sendReadReceipt = (roomId, messageId) => {
         sendMessage({
             type: 'read_receipt',
+            room_id: roomId,
             message_id: messageId,
         })
     }

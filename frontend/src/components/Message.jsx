@@ -3,7 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 import { cn } from '../lib/utils'
 import { useState, useEffect } from 'react'
 
-function Message({ message, isOwn, roomMembers }) {
+function Message({ message, isOwn, roomMembers, readStatus, isGroup }) {
     const [imageError, setImageError] = useState(false)
     const [isPreviewOpen, setIsPreviewOpen] = useState(false)
 
@@ -34,7 +34,10 @@ function Message({ message, isOwn, roomMembers }) {
         return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
     }
 
-    const hasBeenRead = message.read_by && message.read_by.length > 0
+    // Determine how many people have read this message
+    const readers = isOwn ? (readStatus || []).filter(r => r.user_id !== message.sender?.id && r.last_read_message_id >= message.id) : []
+    const readCount = readers.length
+    const isReadByAll = isGroup ? readCount >= (roomMembers.length - 1) : (readCount > 0)
 
     return (
         <div className={cn("flex gap-3 mb-4", isOwn && "flex-row-reverse")}>
@@ -170,11 +173,13 @@ function Message({ message, isOwn, roomMembers }) {
                         {formatTime(message.created_at)}
                     </span>
                     {isOwn && (
-                        <span>
-                            {hasBeenRead ? (
-                                <CheckCheck className="h-3 w-3 text-primary" />
+                        <span className="text-[10px] ml-1">
+                            {isReadByAll ? (
+                                <span className="text-primary font-medium">全部已读</span>
+                            ) : readCount > 0 ? (
+                                <span className="text-primary">{isGroup ? `${readCount}人已读` : '已读'}</span>
                             ) : (
-                                <Check className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-muted-foreground">未读</span>
                             )}
                         </span>
                     )}

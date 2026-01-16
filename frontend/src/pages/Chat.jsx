@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import Sidebar from '../components/Sidebar'
@@ -24,7 +24,19 @@ function Chat() {
     const [groups, setGroups] = useState([])
     const [loadingRooms, setLoadingRooms] = useState(true)
     const [showRoomInfo, setShowRoomInfo] = useState(false)
+    const [sidebarTab, setSidebarTab] = useState('rooms')
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+    const initialLoadRef = useRef(false)
+    const selectedRoomRef = useRef(selectedRoom)
+    const selectedFriendRef = useRef(selectedFriend)
+
+    useEffect(() => {
+        selectedRoomRef.current = selectedRoom
+    }, [selectedRoom])
+
+    useEffect(() => {
+        selectedFriendRef.current = selectedFriend
+    }, [selectedFriend])
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768)
@@ -39,11 +51,21 @@ function Chat() {
     }, [isAuthenticated, loading, navigate])
 
     useEffect(() => {
-        if (isAuthenticated) {
+        if (!isAuthenticated) {
+            initialLoadRef.current = false
+            return
+        }
+
+        if (!initialLoadRef.current) {
+            initialLoadRef.current = true
             loadRooms().then((loadedRooms) => {
                 if (loadedRooms && loadedRooms.length > 0) {
+                    // Use ref to check the latest selection state
+                    // as this async callback might run after user manual selection
+                    if (selectedRoomRef.current || selectedFriendRef.current) return
+
                     // Skip auto-selection on mobile to show the room list first
-                    if (isMobile) return
+                    if (window.innerWidth < 768) return
 
                     const savedRoomId = localStorage.getItem('lastRoomId')
                     if (savedRoomId) {
@@ -60,7 +82,7 @@ function Chat() {
             })
             loadFriends()
         }
-    }, [isAuthenticated, isMobile])
+    }, [isAuthenticated])
 
     const loadFriends = async () => {
         try {
@@ -91,6 +113,7 @@ function Chat() {
     const handleRoomSelect = (room) => {
         setSelectedRoom(room)
         setSelectedFriend(null)
+        setSidebarTab('rooms')
         if (room) {
             localStorage.setItem('lastRoomId', room.id.toString())
             markRoomAsRead(room.id)
@@ -111,6 +134,7 @@ function Chat() {
     const handleRoomCreated = (newRoom) => {
         // Clear selected friend when room is created (e.g. from starting a chat)
         setSelectedFriend(null)
+        setSidebarTab('rooms')
         // Check if room already exists (e.g., private chat room)
         const existingRoom = rooms.find(r => r.id === newRoom.id)
         if (existingRoom) {
@@ -128,7 +152,7 @@ function Chat() {
     const handleRoomDeleted = (roomId) => {
         setRooms(prev => {
             const filtered = prev.filter(r => r.id !== roomId)
-            if (selectedRoom?.id === roomId) {
+            if (selectedRoomRef.current?.id === roomId) {
                 const nextRoom = filtered[0] || null
                 setSelectedRoom(nextRoom)
                 setSelectedFriend(null)
@@ -144,35 +168,77 @@ function Chat() {
 
     const handleRoomUpdated = (updatedRoom) => {
         setRooms(prev => prev.map(r => r.id === updatedRoom.id ? updatedRoom : r))
-        if (selectedRoom?.id === updatedRoom.id) {
+        if (selectedRoomRef.current?.id === updatedRoom.id) {
             setSelectedRoom(updatedRoom)
         }
     }
 
     useEffect(() => {
-        if (lastMessage && lastMessage.type === 'message' && lastMessage.data?.message) {
-            const newMsg = lastMessage.data.message
-            
-            // Update the room's unread count and last message
-            setRooms(prev => prev.map(r => {
-                if (r.id === newMsg.room_id) {
-                    const isNotSelected = newMsg.room_id !== selectedRoom?.id
-                    const isNotOwn = newMsg.sender?.id !== user?.id
-                    
-                    return {
-                        ...r,
-                        unread_count: (isNotSelected && isNotOwn) ? (r.unread_count || 0) + 1 : r.unread_count,
-                        last_message: newMsg
+        if (lastMessage) {
+            if (lastMessage.type === 'message' && lastMessage.data?.message) {
+                const newMsg = lastMessage.data.message
+                
+                // Update the room's unread count and last message
+                setRooms(prev => {
+                    const updatedRooms = prev.map(r => {
+                        if (r.id === newMsg.room_id) {
+                            const isNotSelected = newMsg.room_id !== selectedRoomRef.current?.id
+                            const isNotOwn = newMsg.sender?.id !== user?.id
+                            
+                            return {
+                                ...r,
+                                unread_count: (isNotSelected && isNotOwn) ? (r.unread_count || 0) + 1 : r.unread_count,
+                                last_message: newMsg
+                            }
+                        }
+                        return r
+                    })
+
+                    // Also update selectedRoom if it's the current room to keep it in sync
+                    if (selectedRoomRef.current?.id === newMsg.room_id) {
+                        const updatedSelectedRoom = updatedRooms.find(r => r.id === newMsg.room_id)
+                        if (updatedSelectedRoom) {
+                            setSelectedRoom(updatedSelectedRoom)
+                        }
                     }
-                }
-                return r
-            }))
+
+                    return updatedRooms
+                })
+            } else if (lastMessage.type === 'read_receipt' && lastMessage.data) {
+                const { room_id, last_read_message_id, user_id } = lastMessage.data
+                setRooms(prev => prev.map(r => {
+                    if (r.id === room_id) {
+                        const updatedReadStatus = [...(r.read_status || [])]
+                        const idx = updatedReadStatus.findIndex(rs => rs.user_id === user_id)
+                        if (idx > -1) {
+                            if (last_read_message_id > updatedReadStatus[idx].last_read_message_id) {
+                                updatedReadStatus[idx] = { ...updatedReadStatus[idx], last_read_message_id }
+                            }
+                        } else {
+                            updatedReadStatus.push({ room_id, user_id, last_read_message_id })
+                        }
+                        
+                        let unreadCount = r.unread_count
+                        if (user_id === user?.id) {
+                            unreadCount = 0
+                        }
+
+                        const updatedRoom = { ...r, read_status: updatedReadStatus, unread_count: unreadCount }
+                        if (selectedRoomRef.current?.id === room_id) {
+                            setSelectedRoom(updatedRoom)
+                        }
+                        return updatedRoom
+                    }
+                    return r
+                }))
+            }
         }
-    }, [lastMessage, selectedRoom, user])
+    }, [lastMessage, user])
 
     const handleFriendSelect = (friend) => {
         setSelectedFriend(friend)
         setSelectedRoom(null)
+        setSidebarTab('friends')
     }
 
     const handleSendMessage = async (friend) => {
@@ -224,8 +290,10 @@ function Chat() {
         <div className="h-screen flex bg-background overflow-hidden">
             {/* Sidebar */}
             <div className={cn(
-                "h-full transition-all duration-300 ease-in-out",
-                isMobile ? (selectedRoom || selectedFriend ? "w-0 overflow-hidden" : "w-full") : "w-80 border-r"
+                "h-full border-r transition-all duration-300 ease-in-out shrink-0",
+                isMobile 
+                    ? (selectedRoom || selectedFriend ? "w-0 overflow-hidden hidden" : "w-full") 
+                    : "w-80"
             )}>
                 <Sidebar
                     rooms={rooms}
@@ -239,13 +307,15 @@ function Chat() {
                     groups={groups}
                     onFriendsRefresh={loadFriends}
                     user={user}
+                    activeTab={sidebarTab}
+                    onTabChange={setSidebarTab}
                 />
             </div>
 
             {/* Main Chat Area */}
             <div className={cn(
                 "flex-1 flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out",
-                isMobile && !(selectedRoom || selectedFriend) && "hidden"
+                isMobile && !(selectedRoom || selectedFriend) ? "w-0 h-0 overflow-hidden hidden" : "flex"
             )}>
                 {selectedFriend ? (
                     <FriendDetail

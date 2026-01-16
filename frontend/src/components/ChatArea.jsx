@@ -129,22 +129,6 @@ function ChatArea({ room, onToggleInfo, showRoomInfo, onMessagesRead, onBack }) 
                     }
                 }, 50)
             }
-        } else if (lastMessage && lastMessage.type === 'read_receipt' && lastMessage.data) {
-            const { room_id, message_ids, user_id } = lastMessage.data
-            if (room_id === room?.id) {
-                setMessages(prev => prev.map(m => {
-                    if (message_ids.includes(m.id)) {
-                        const alreadyRead = m.read_by?.some(r => r.user_id === user_id)
-                        if (!alreadyRead) {
-                            return {
-                                ...m,
-                                read_by: [...(m.read_by || []), { user_id, read_at: new Date().toISOString() }]
-                            }
-                        }
-                    }
-                    return m
-                }))
-            }
         }
     }, [lastMessage, room, scrollToBottom, user?.id])
 
@@ -217,17 +201,18 @@ function ChatArea({ room, onToggleInfo, showRoomInfo, onMessagesRead, onBack }) 
         if (!room) return
 
         const targetMessages = messagesToMark || messages
-        const unreadMessages = targetMessages.filter(m => m.sender?.id !== user?.id)
+        const otherMessages = targetMessages.filter(m => m.sender?.id !== user?.id)
         
-        if (unreadMessages.length > 0) {
+        if (otherMessages.length > 0) {
             try {
-                const messageIds = unreadMessages.map(m => m.id)
-                await messageService.markAsRead(messageIds)
+                // Get the latest message ID
+                const latestMessageId = Math.max(...otherMessages.map(m => m.id))
+                await messageService.markAsRead(room.id, latestMessageId)
                 if (onMessagesRead) {
                     onMessagesRead(room.id)
                 }
             } catch (error) {
-                // Silent fail - read receipts are nice to have
+                // Silent fail
             }
         }
     }
@@ -333,6 +318,8 @@ function ChatArea({ room, onToggleInfo, showRoomInfo, onMessagesRead, onBack }) 
                                 message={message}
                                 isOwn={message.sender?.id === user?.id}
                                 roomMembers={room.members || []}
+                                readStatus={room.read_status || []}
+                                isGroup={room.type === 'group'}
                             />
                         ))}
                         <div ref={messagesEndRef} />

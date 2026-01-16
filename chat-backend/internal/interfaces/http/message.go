@@ -29,9 +29,20 @@ func (h *MessageHandler) GetMessages(c *gin.Context) {
 	roomID, _ := strconv.ParseUint(roomIDStr, 10, 32)
 	
 	limitStr := c.DefaultQuery("limit", "50")
-	offsetStr := c.DefaultQuery("offset", "0")
 	limit, _ := strconv.Atoi(limitStr)
-	offset, _ := strconv.Atoi(offsetStr)
+
+	// Support both page and offset, prioritize page if it exists
+	var offset int
+	if pageStr := c.Query("page"); pageStr != "" {
+		page, _ := strconv.Atoi(pageStr)
+		if page < 1 {
+			page = 1
+		}
+		offset = (page - 1) * limit
+	} else {
+		offsetStr := c.DefaultQuery("offset", "0")
+		offset, _ = strconv.Atoi(offsetStr)
+	}
 
 	messages, err := h.messageApp.GetMessages(uint(roomID), limit, offset)
 	if err != nil {
@@ -49,25 +60,21 @@ func (h *MessageHandler) GetMessages(c *gin.Context) {
 func (h *MessageHandler) MarkAsRead(c *gin.Context) {
 	userID := c.MustGet("user_id").(uint)
 	var req struct {
-		MessageIDs []uint `json:"message_ids" binding:"required"`
+		RoomID    uint `json:"room_id" binding:"required"`
+		MessageID uint `json:"message_id" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.ErrorWithCode(c, http.StatusBadRequest, xerror.CodeInvalidParams, err.Error())
 		return
 	}
 
-	if err := h.messageApp.MarkAsRead(req.MessageIDs, userID); err != nil {
+	if err := h.messageApp.MarkAsRead(req.RoomID, userID, req.MessageID); err != nil {
 		utils.Error(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	// Broadcast read receipt via websocket
-	if len(req.MessageIDs) > 0 {
-		m, err := h.messageApp.GetByID(req.MessageIDs[0])
-		if err == nil {
-			h.hub.BroadcastReadReceipt(m.RoomID, req.MessageIDs, userID)
-		}
-	}
+	h.hub.BroadcastReadReceipt(req.RoomID, req.MessageID, userID)
 
 	utils.Message(c, "marked as read")
 }

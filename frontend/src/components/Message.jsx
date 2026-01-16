@@ -25,7 +25,14 @@ function Message({ message, isOwn, roomMembers, readStatus, isGroup }) {
         if (!timestamp) return ''
         const date = new Date(timestamp)
         if (isNaN(date.getTime())) return ''
-        return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
+        return date.toLocaleString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        })
     }
 
     const formatFileSize = (bytes) => {

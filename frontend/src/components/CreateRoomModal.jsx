@@ -93,10 +93,10 @@ function CreateRoomModal({ friends, groups, onRoomCreated, onClose }) {
                                             <button
                                                 type="button"
                                                 onClick={() => toggleGroup(group.name)}
-                                                className="flex items-center gap-1 w-full text-left text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors p-1"
+                                                className="flex items-center gap-1 w-full text-left text-sm font-bold text-foreground hover:text-primary transition-colors p-1"
                                             >
                                                 {expandedGroups.has(group.name) ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                                                {group.name.toUpperCase()} ({group.friends.length})
+                                                {group.name} ({group.friends.length})
                                             </button>
 
                                             {expandedGroups.has(group.name) && group.friends.map(friend => (
@@ -116,7 +116,7 @@ function CreateRoomModal({ friends, groups, onRoomCreated, onClose }) {
                                             <button
                                                 type="button"
                                                 onClick={() => toggleGroup('Ungrouped')}
-                                                className="flex items-center gap-1 w-full text-left text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors p-1"
+                                                className="flex items-center gap-1 w-full text-left text-sm font-bold text-foreground hover:text-primary transition-colors p-1"
                                             >
                                                 {expandedGroups.has('Ungrouped') ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                                                 未分组 ({ungroupedFriends.length})

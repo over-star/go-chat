@@ -107,7 +107,7 @@ export default function ManageGroupsModal({ groups, onGroupsChange, onClose }) {
                         ) : (
                             groups.map(group => (
                                 <div key={group.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
-                                    <span className="font-medium">{group.name}</span>
+                                    <span className="font-bold">{group.name}</span>
                                     <Button 
                                         variant="ghost" 
                                         size="icon" 

@@ -349,10 +349,10 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, onRoomDelet
                                     <div key={group.id} className="space-y-1">
                                         <button
                                             onClick={() => toggleGroupExpand(group.name)}
-                                            className="flex items-center gap-1 w-full text-left text-[11px] font-bold text-muted-foreground hover:text-foreground transition-colors py-1 px-2"
+                                            className="flex items-center gap-1 w-full text-left text-sm font-bold text-foreground hover:text-primary transition-colors py-1 px-2"
                                         >
                                             {expandedGroups.has(group.name) ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                                            {group.name.toUpperCase()} ({groupFriends.length})
+                                            {group.name} ({groupFriends.length})
                                         </button>
 
                                         {expandedGroups.has(group.name) && groupFriends.map(friend => (
@@ -375,7 +375,7 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, onRoomDelet
                                     <div className="space-y-1">
                                         <button
                                             onClick={() => toggleGroupExpand('Ungrouped')}
-                                            className="flex items-center gap-1 w-full text-left text-[11px] font-bold text-muted-foreground hover:text-foreground transition-colors py-1 px-2"
+                                            className="flex items-center gap-1 w-full text-left text-sm font-bold text-foreground hover:text-primary transition-colors py-1 px-2"
                                         >
                                             {expandedGroups.has('Ungrouped') ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                                             未分组 ({ungrouped.length})
@@ -426,7 +426,7 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, onRoomDelet
                     
                     <div className="h-px bg-border my-1" />
                     
-                    <div className="px-2 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                    <div className="px-2 py-1 text-xs font-bold text-muted-foreground uppercase tracking-wider">
                         移动到分组
                     </div>
                     

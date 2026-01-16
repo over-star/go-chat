@@ -47,7 +47,7 @@ function FriendDetail({ friend, groups, onSendMessage, onRemoveFriend, onMoveGro
                     
                     <div className="text-center space-y-2">
                         <h2 className="text-3xl font-bold tracking-tight">{friendInfo.username}</h2>
-                        <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground">
+                        <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground">
                             {currentGroup ? currentGroup.name : '未分组'}
                         </div>
                     </div>

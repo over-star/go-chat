@@ -38,17 +38,30 @@ function FriendDetail({ friend, groups, onSendMessage, onRemoveFriend, onMoveGro
             <div className="flex-1 flex flex-col items-center justify-center">
                 <Card className="w-full max-w-md border-none shadow-none bg-transparent">
                 <CardContent className="flex flex-col items-center space-y-8">
-                    <Avatar className="h-32 w-32 ring-4 ring-background shadow-xl">
-                        <AvatarImage src={friendInfo?.avatar} />
-                        <AvatarFallback className="text-4xl font-bold bg-primary/10 text-primary">
-                            {friendInfo?.username?.[0]?.toUpperCase()}
-                        </AvatarFallback>
-                    </Avatar>
+                    <div className="relative">
+                        <Avatar className="h-32 w-32 ring-4 ring-background shadow-xl">
+                            <AvatarImage src={friendInfo?.avatar} />
+                            <AvatarFallback className="text-4xl font-bold bg-primary/10 text-primary">
+                                {friendInfo?.username?.[0]?.toUpperCase()}
+                            </AvatarFallback>
+                        </Avatar>
+                        {friendInfo?.status === 'online' && (
+                            <span className="absolute bottom-2 right-2 h-6 w-6 rounded-full bg-green-500 ring-4 ring-background" title="在线" />
+                        )}
+                    </div>
                     
                     <div className="text-center space-y-2">
                         <h2 className="text-3xl font-bold tracking-tight">{friendInfo.username}</h2>
-                        <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground">
-                            {currentGroup ? currentGroup.name : '未分组'}
+                        <div className="flex items-center justify-center gap-2">
+                            <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground">
+                                {currentGroup ? currentGroup.name : '未分组'}
+                            </div>
+                            <span className={cn(
+                                "text-xs font-medium px-2 py-0.5 rounded-full",
+                                friendInfo?.status === 'online' ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"
+                            )}>
+                                {friendInfo?.status === 'online' ? '在线' : '离线'}
+                            </span>
                         </div>
                     </div>
 

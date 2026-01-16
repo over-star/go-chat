@@ -3,6 +3,7 @@ package ws
 import (
 	"chat-backend/internal/domain/chat"
 	"chat-backend/internal/domain/room"
+	"chat-backend/internal/domain/user"
 	"chat-backend/pkg/logger"
 	"encoding/json"
 	"sync"
@@ -18,6 +19,7 @@ type Hub struct {
 	mu          sync.RWMutex
 	messageRepo chat.Repository
 	roomRepo    room.Repository
+	userRepo    user.Repository
 }
 
 type BroadcastMessage struct {
@@ -25,7 +27,7 @@ type BroadcastMessage struct {
 	Message []byte
 }
 
-func NewHub(messageRepo chat.Repository, roomRepo room.Repository) *Hub {
+func NewHub(messageRepo chat.Repository, roomRepo room.Repository, userRepo user.Repository) *Hub {
 	return &Hub{
 		clients:     make(map[uint]map[*Client]bool),
 		Broadcast:   make(chan *BroadcastMessage, 256),
@@ -33,6 +35,7 @@ func NewHub(messageRepo chat.Repository, roomRepo room.Repository) *Hub {
 		Unregister:  make(chan *Client),
 		messageRepo: messageRepo,
 		roomRepo:    roomRepo,
+		userRepo:    userRepo,
 	}
 }
 
@@ -41,26 +44,40 @@ func (h *Hub) Run() {
 		select {
 		case client := <-h.Register:
 			h.mu.Lock()
+			isFirstClient := false
 			if h.clients[client.UserID] == nil {
 				h.clients[client.UserID] = make(map[*Client]bool)
+				isFirstClient = true
 			}
 			h.clients[client.UserID][client] = true
 			h.mu.Unlock()
+
+			if isFirstClient {
+				h.userRepo.UpdateStatus(client.UserID, "online")
+				h.broadcastUserStatus(client.UserID, "online")
+			}
 			logger.L.Info("Client registered", zap.Uint("user_id", client.UserID))
 
 		case client := <-h.Unregister:
 			h.mu.Lock()
+			isLastClient := false
 			if clients, ok := h.clients[client.UserID]; ok {
 				if _, ok := clients[client]; ok {
 					delete(clients, client)
 					close(client.send)
 					if len(clients) == 0 {
 						delete(h.clients, client.UserID)
+						isLastClient = true
 					}
-					logger.L.Info("Client unregistered", zap.Uint("user_id", client.UserID))
 				}
 			}
 			h.mu.Unlock()
+
+			if isLastClient {
+				h.userRepo.UpdateStatus(client.UserID, "offline")
+				h.broadcastUserStatus(client.UserID, "offline")
+			}
+			logger.L.Info("Client unregistered", zap.Uint("user_id", client.UserID))
 
 		case broadcast := <-h.Broadcast:
 			var msg map[string]interface{}
@@ -217,4 +234,26 @@ func (h *Hub) SendToUser(userID uint, message []byte) {
 			}
 		}
 	}
+}
+
+func (h *Hub) broadcastUserStatus(userID uint, status string) {
+	friends, err := h.userRepo.GetFriends(userID)
+	if err != nil {
+		logger.L.Error("failed to get friends for status broadcast", zap.Error(err))
+		return
+	}
+
+	response, _ := json.Marshal(map[string]interface{}{
+		"type": "user_status_change",
+		"data": map[string]interface{}{
+			"user_id": userID,
+			"status":  status,
+		},
+	})
+
+	for _, f := range friends {
+		h.SendToUser(f.FriendID, response)
+	}
+	// Also send to the user themselves to update their local UI state
+	h.SendToUser(userID, response)
 }

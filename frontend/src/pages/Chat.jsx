@@ -14,7 +14,7 @@ import { Loader2 } from 'lucide-react'
 import { cn } from '../lib/utils'
 
 function Chat() {
-    const { user, isAuthenticated, loading } = useAuth()
+    const { user, isAuthenticated, loading, updateUser } = useAuth()
     const { lastMessage } = useWebSocket()
     const navigate = useNavigate()
     const [rooms, setRooms] = useState([])
@@ -231,6 +231,50 @@ function Chat() {
                     }
                     return r
                 }))
+            } else if (lastMessage.type === 'user_status_change' && lastMessage.data) {
+                const { user_id, status } = lastMessage.data
+                
+                // Update current user if it's me
+                if (user_id === user?.id) {
+                    updateUser({ status })
+                }
+                
+                // Update friends list
+                setFriends(prev => prev.map(f => 
+                    f.friend_info.id === user_id ? { ...f, friend_info: { ...f.friend_info, status } } : f
+                ))
+
+                // Update selected friend
+                if (selectedFriendRef.current?.friend_info.id === user_id) {
+                    setSelectedFriend(prev => ({
+                        ...prev,
+                        friend_info: { ...prev.friend_info, status }
+                    }))
+                }
+
+                // Update rooms list (for private chat online status)
+                setRooms(prev => {
+                    const updatedRooms = prev.map(r => {
+                        if (r.type === 'private' && r.members?.some(m => m.id === user_id)) {
+                            const updatedMembers = r.members.map(m => 
+                                m.id === user_id ? { ...m, status } : m
+                            )
+                            return { ...r, members: updatedMembers }
+                        }
+                        return r
+                    })
+
+                    // Keep selected room in sync
+                    if (selectedRoomRef.current?.type === 'private' && 
+                        selectedRoomRef.current?.members?.some(m => m.id === user_id)) {
+                        const updatedSelectedRoom = updatedRooms.find(r => r.id === selectedRoomRef.current.id)
+                        if (updatedSelectedRoom) {
+                            setSelectedRoom(updatedSelectedRoom)
+                        }
+                    }
+
+                    return updatedRooms
+                })
             }
         }
     }, [lastMessage, user])

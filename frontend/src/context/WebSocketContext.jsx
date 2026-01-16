@@ -27,7 +27,7 @@ export const WebSocketProvider = ({ children }) => {
     const intentionalDisconnectRef = useRef(false)
 
     useEffect(() => {
-        if (isAuthenticated && user && token) {
+        if (isAuthenticated && user?.id && token) {
             intentionalDisconnectRef.current = false
             connectWebSocket()
         }
@@ -36,7 +36,7 @@ export const WebSocketProvider = ({ children }) => {
             intentionalDisconnectRef.current = true
             disconnectWebSocket()
         }
-    }, [isAuthenticated, user, token])
+    }, [isAuthenticated, user?.id, token])
 
 
 

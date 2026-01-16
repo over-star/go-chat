@@ -49,6 +49,7 @@ type Repository interface {
 	GetByUsername(username string) (*User, error)
 	GetByEmail(email string) (*User, error)
 	Update(user *User) error
+	UpdateStatus(id uint, status string) error
 	Search(query string) ([]User, error)
 	GetFriends(userID uint) ([]Friend, error)
 	GetFriendRequests(userID uint) ([]Friend, error)

@@ -39,6 +39,10 @@ func (r *userRepo) Update(u *user.User) error {
 	return r.db.Save(u).Error
 }
 
+func (r *userRepo) UpdateStatus(id uint, status string) error {
+	return r.db.Model(&user.User{}).Where("id = ?", id).Update("status", status).Error
+}
+
 func (r *userRepo) Search(query string) ([]user.User, error) {
 	var users []user.User
 	err := r.db.Where("username LIKE ? OR email LIKE ?", "%"+query+"%", "%"+query+"%").Find(&users).Error

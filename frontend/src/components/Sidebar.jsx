@@ -177,13 +177,16 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, onRoomDelet
                                 <AvatarImage src={user?.avatar} />
                                 <AvatarFallback>{user?.username?.[0]?.toUpperCase()}</AvatarFallback>
                             </Avatar>
+                            {user?.status === 'online' && (
+                                <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 ring-2 ring-background" />
+                            )}
                             <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Settings className="h-3 w-3 text-white" />
                             </div>
                         </div>
                         <div className="flex-1 min-w-0 text-left">
                             <p className="font-semibold text-sm truncate">{user?.nickname || user?.username}</p>
-                            <p className="text-xs text-muted-foreground">在线</p>
+                            <p className="text-xs text-muted-foreground">{user?.status === 'online' ? '在线' : '离线'}</p>
                         </div>
                     </div>
                     <Button variant="ghost" size="icon" onClick={logout}>
@@ -510,6 +513,9 @@ function RoomItem({ room, isSelected, onClick, onDelete, currentUser }) {
                             {isGroup ? <Users className="h-5 w-5" /> : displayName[0]?.toUpperCase()}
                         </AvatarFallback>
                     </Avatar>
+                    {!isGroup && otherMember?.status === 'online' && (
+                        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 ring-2 ring-background" title="在线" />
+                    )}
                     {room.unread_count > 0 && (
                         <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center font-bold ring-2 ring-background">
                             {room.unread_count > 99 ? '99+' : room.unread_count}
@@ -573,10 +579,15 @@ function FriendItem({ friend, isSelected, onClick, onContextMenu }) {
             )}
         >
             <div className="flex flex-1 items-center gap-2 min-w-0">
-                <Avatar className="h-8 w-8 ring-1 ring-border group-hover:ring-primary/20 transition-all">
-                    <AvatarImage src={friend.friend_info?.avatar} />
-                    <AvatarFallback className="bg-muted text-muted-foreground text-[10px]">{friend.friend_info?.username?.[0]?.toUpperCase()}</AvatarFallback>
-                </Avatar>
+                <div className="relative">
+                    <Avatar className="h-8 w-8 ring-1 ring-border group-hover:ring-primary/20 transition-all">
+                        <AvatarImage src={friend.friend_info?.avatar} />
+                        <AvatarFallback className="bg-muted text-muted-foreground text-[10px]">{friend.friend_info?.username?.[0]?.toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    {friend.friend_info?.status === 'online' && (
+                        <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-background" title="在线" />
+                    )}
+                </div>
                 <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{friend.friend_info?.username}</p>
                 </div>

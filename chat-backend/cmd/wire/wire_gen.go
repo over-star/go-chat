@@ -28,7 +28,7 @@ func InitializeApp(db *gorm.DB) (*app.App, func(), error) {
 	httpRoomHandler := http.NewRoomHandler(roomHandler, db)
 	chatRepository := persistence.NewMessageRepository(db)
 	messageHandler := command.NewMessageHandler(chatRepository)
-	hub := ws.NewHub(chatRepository, roomRepository)
+	hub := ws.NewHub(chatRepository, roomRepository, repository)
 	httpMessageHandler := http.NewMessageHandler(messageHandler, hub)
 	routerOptions := http.RouterOptions{
 		AuthHandler:    httpAuthHandler,

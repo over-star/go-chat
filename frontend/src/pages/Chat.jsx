@@ -188,7 +188,8 @@ function Chat() {
                             return {
                                 ...r,
                                 unread_count: (isNotSelected && isNotOwn) ? (r.unread_count || 0) + 1 : r.unread_count,
-                                last_message: newMsg
+                                last_message: newMsg,
+                                updated_at: newMsg.created_at // Update timestamp to move room to top
                             }
                         }
                         return r

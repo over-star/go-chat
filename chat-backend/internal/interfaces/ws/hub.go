@@ -5,9 +5,12 @@ import (
 	"chat-backend/internal/domain/room"
 	"chat-backend/internal/domain/user"
 	"chat-backend/pkg/logger"
+	"context"
 	"encoding/json"
+	"fmt"
 	"sync"
 
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
@@ -20,6 +23,7 @@ type Hub struct {
 	messageRepo chat.Repository
 	roomRepo    room.Repository
 	userRepo    user.Repository
+	rdb         *redis.Client
 }
 
 type BroadcastMessage struct {
@@ -27,7 +31,7 @@ type BroadcastMessage struct {
 	Message []byte
 }
 
-func NewHub(messageRepo chat.Repository, roomRepo room.Repository, userRepo user.Repository) *Hub {
+func NewHub(messageRepo chat.Repository, roomRepo room.Repository, userRepo user.Repository, rdb *redis.Client) *Hub {
 	return &Hub{
 		clients:     make(map[uint]map[*Client]bool),
 		Broadcast:   make(chan *BroadcastMessage, 256),
@@ -36,10 +40,14 @@ func NewHub(messageRepo chat.Repository, roomRepo room.Repository, userRepo user
 		messageRepo: messageRepo,
 		roomRepo:    roomRepo,
 		userRepo:    userRepo,
+		rdb:         rdb,
 	}
 }
 
 func (h *Hub) Run() {
+	// 5. Start Redis Subscription
+	go h.subscribeToRedis()
+
 	for {
 		select {
 		case client := <-h.Register:
@@ -89,6 +97,53 @@ func (h *Hub) Run() {
 	}
 }
 
+func (h *Hub) subscribeToRedis() {
+	// Subscribe to both room messages and user status changes
+	pubsub := h.rdb.PSubscribe(context.Background(), "room:*", "user:status:*")
+	defer pubsub.Close()
+
+	ch := pubsub.Channel()
+	logger.L.Info("Subscribed to Redis channels room:* and user:status:*")
+
+	for msg := range ch {
+		h.handleRedisMessage(msg)
+	}
+}
+
+func (h *Hub) handleRedisMessage(redisMsg *redis.Message) {
+	// Handle User Status Change relay
+	if len(redisMsg.Channel) > 12 && redisMsg.Channel[:12] == "user:status:" {
+		h.handleUserStatusRelay(redisMsg)
+		return
+	}
+
+	var payload struct {
+		RoomID  uint            `json:"room_id"`
+		Payload json.RawMessage `json:"payload"`
+		Type    string          `json:"type"`
+	}
+
+	if err := json.Unmarshal([]byte(redisMsg.Payload), &payload); err != nil {
+		logger.L.Error("failed to unmarshal redis message", zap.Error(err), zap.String("channel", redisMsg.Channel))
+		return
+	}
+
+	// Fetch room members
+	rm, err := h.roomRepo.GetByID(payload.RoomID)
+	if err != nil {
+		logger.L.Error("failed to get room members from repo", zap.Error(err), zap.Uint("room_id", payload.RoomID))
+		return
+	}
+
+	if len(rm.Members) == 0 {
+		return
+	}
+
+	for _, member := range rm.Members {
+		h.SendToUser(member.ID, []byte(payload.Payload))
+	}
+}
+
 func (h *Hub) handleIncomingMessage(client *Client, raw []byte, msg map[string]interface{}) {
 	msgType, _ := msg["type"].(string)
 
@@ -101,6 +156,17 @@ func (h *Hub) handleIncomingMessage(client *Client, raw []byte, msg map[string]i
 		h.handleTypingStatus(client, msg)
 	case "read_receipt":
 		h.handleReadReceipt(client, msg)
+	}
+}
+
+func (h *Hub) publishToRedis(roomID uint, msgType string, payload []byte) {
+	data, _ := json.Marshal(map[string]interface{}{
+		"room_id": roomID,
+		"type":    msgType,
+		"payload": json.RawMessage(payload), // Use RawMessage to avoid base64 encoding
+	})
+	if err := h.rdb.Publish(context.Background(), fmt.Sprintf("room:%d", roomID), data).Err(); err != nil {
+		logger.L.Error("failed to publish to redis", zap.Error(err), zap.Uint("room_id", roomID))
 	}
 }
 
@@ -149,13 +215,6 @@ func (h *Hub) handleChatMessage(client *Client, msg map[string]interface{}) {
 		return
 	}
 
-	// Get room members to broadcast
-	rm, err := h.roomRepo.GetByID(roomID)
-	if err != nil {
-		logger.L.Error("failed to get room members", zap.Error(err))
-		return
-	}
-
 	response, _ := json.Marshal(map[string]interface{}{
 		"type": "message",
 		"data": map[string]interface{}{
@@ -163,19 +222,13 @@ func (h *Hub) handleChatMessage(client *Client, msg map[string]interface{}) {
 		},
 	})
 
-	for _, member := range rm.Members {
-		h.SendToUser(member.ID, response)
-	}
+	// Publish to Redis instead of direct broadcast
+	h.publishToRedis(roomID, "message", response)
 }
 
 func (h *Hub) handleTypingStatus(client *Client, msg map[string]interface{}) {
 	roomID := uint(msg["room_id"].(float64))
-	// Broadcast typing status to room members except sender
-	rm, err := h.roomRepo.GetByID(roomID)
-	if err != nil {
-		return
-	}
-
+	// Broadcast typing status to room members via Redis
 	response, _ := json.Marshal(map[string]interface{}{
 		"type":    "typing",
 		"room_id": roomID,
@@ -183,11 +236,8 @@ func (h *Hub) handleTypingStatus(client *Client, msg map[string]interface{}) {
 		"user_id": client.UserID,
 	})
 
-	for _, member := range rm.Members {
-		if member.ID != client.UserID {
-			h.SendToUser(member.ID, response)
-		}
-	}
+	// Publish to Redis instead of direct broadcast
+	h.publishToRedis(roomID, "typing", response)
 }
 
 func (h *Hub) handleReadReceipt(client *Client, msg map[string]interface{}) {
@@ -202,11 +252,6 @@ func (h *Hub) handleReadReceipt(client *Client, msg map[string]interface{}) {
 }
 
 func (h *Hub) BroadcastReadReceipt(roomID uint, lastReadMessageID uint, userID uint) {
-	rm, err := h.roomRepo.GetByID(roomID)
-	if err != nil {
-		return
-	}
-
 	response, _ := json.Marshal(map[string]interface{}{
 		"type": "read_receipt",
 		"data": map[string]interface{}{
@@ -216,9 +261,8 @@ func (h *Hub) BroadcastReadReceipt(roomID uint, lastReadMessageID uint, userID u
 		},
 	})
 
-	for _, member := range rm.Members {
-		h.SendToUser(member.ID, response)
-	}
+	// Publish to Redis instead of direct broadcast
+	h.publishToRedis(roomID, "read_receipt", response)
 }
 
 func (h *Hub) SendToUser(userID uint, message []byte) {
@@ -236,13 +280,29 @@ func (h *Hub) SendToUser(userID uint, message []byte) {
 	}
 }
 
-func (h *Hub) broadcastUserStatus(userID uint, status string) {
-	friends, err := h.userRepo.GetFriends(userID)
-	if err != nil {
-		logger.L.Error("failed to get friends for status broadcast", zap.Error(err))
+func (h *Hub) handleUserStatusRelay(redisMsg *redis.Message) {
+	var payload struct {
+		UserID uint            `json:"user_id"`
+		Status string          `json:"status"`
+		Data   json.RawMessage `json:"data"`
+	}
+
+	if err := json.Unmarshal([]byte(redisMsg.Payload), &payload); err != nil {
 		return
 	}
 
+	friends, err := h.userRepo.GetFriends(payload.UserID)
+	if err != nil {
+		return
+	}
+
+	for _, f := range friends {
+		h.SendToUser(f.FriendID, payload.Data)
+	}
+	h.SendToUser(payload.UserID, payload.Data)
+}
+
+func (h *Hub) broadcastUserStatus(userID uint, status string) {
 	response, _ := json.Marshal(map[string]interface{}{
 		"type": "user_status_change",
 		"data": map[string]interface{}{
@@ -251,9 +311,11 @@ func (h *Hub) broadcastUserStatus(userID uint, status string) {
 		},
 	})
 
-	for _, f := range friends {
-		h.SendToUser(f.FriendID, response)
-	}
-	// Also send to the user themselves to update their local UI state
-	h.SendToUser(userID, response)
+	// Publish to Redis so all instances can notify local friends
+	data, _ := json.Marshal(map[string]interface{}{
+		"user_id": userID,
+		"status":  status,
+		"data":    json.RawMessage(response),
+	})
+	h.rdb.Publish(context.Background(), fmt.Sprintf("user:status:%d", userID), data)
 }

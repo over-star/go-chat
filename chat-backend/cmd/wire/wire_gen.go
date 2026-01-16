@@ -12,23 +12,24 @@ import (
 	"chat-backend/internal/infrastructure/persistence"
 	"chat-backend/internal/interfaces/http"
 	"chat-backend/internal/interfaces/ws"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
 // Injectors from wire.go:
 
-func InitializeApp(db *gorm.DB) (*app.App, func(), error) {
-	repository := persistence.NewUserRepository(db)
+func InitializeApp(db *gorm.DB, rdb *redis.Client) (*app.App, func(), error) {
+	repository := persistence.NewUserRepository(db, rdb)
 	authHandler := command.NewAuthHandler(repository)
 	httpAuthHandler := http.NewAuthHandler(authHandler)
 	userHandler := command.NewUserHandler(repository)
 	httpUserHandler := http.NewUserHandler(userHandler)
-	roomRepository := persistence.NewRoomRepository(db)
+	roomRepository := persistence.NewRoomRepository(db, rdb)
 	roomHandler := command.NewRoomHandler(roomRepository)
 	httpRoomHandler := http.NewRoomHandler(roomHandler, db)
 	chatRepository := persistence.NewMessageRepository(db)
 	messageHandler := command.NewMessageHandler(chatRepository)
-	hub := ws.NewHub(chatRepository, roomRepository, repository)
+	hub := ws.NewHub(chatRepository, roomRepository, repository, rdb)
 	httpMessageHandler := http.NewMessageHandler(messageHandler, hub)
 	routerOptions := http.RouterOptions{
 		AuthHandler:    httpAuthHandler,

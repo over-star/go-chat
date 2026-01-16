@@ -11,10 +11,11 @@ import (
 	"chat-backend/internal/interfaces/ws"
 
 	"github.com/google/wire"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
-func InitializeApp(db *gorm.DB) (*app.App, func(), error) {
+func InitializeApp(db *gorm.DB, rdb *redis.Client) (*app.App, func(), error) {
 	wire.Build(
 		persistence.NewUserRepository,
 		persistence.NewRoomRepository,

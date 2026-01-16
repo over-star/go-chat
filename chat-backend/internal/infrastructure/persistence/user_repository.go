@@ -2,15 +2,22 @@ package persistence
 
 import (
 	"chat-backend/internal/domain/user"
+	"context"
+	"encoding/json"
+	"fmt"
+	"time"
+
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
 type userRepo struct {
-	db *gorm.DB
+	db  *gorm.DB
+	rdb *redis.Client
 }
 
-func NewUserRepository(db *gorm.DB) user.Repository {
-	return &userRepo{db: db}
+func NewUserRepository(db *gorm.DB, rdb *redis.Client) user.Repository {
+	return &userRepo{db: db, rdb: rdb}
 }
 
 func (r *userRepo) Create(u *user.User) error {
@@ -18,9 +25,29 @@ func (r *userRepo) Create(u *user.User) error {
 }
 
 func (r *userRepo) GetByID(id uint) (*user.User, error) {
+	ctx := context.Background()
+	cacheKey := fmt.Sprintf("user:%d", id)
+
+	// Try cache
+	val, err := r.rdb.Get(ctx, cacheKey).Result()
+	if err == nil {
+		var u user.User
+		if err := json.Unmarshal([]byte(val), &u); err == nil {
+			return &u, nil
+		}
+	}
+
 	var u user.User
-	err := r.db.First(&u, id).Error
-	return &u, err
+	err = r.db.First(&u, id).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Set cache
+	data, _ := json.Marshal(u)
+	r.rdb.Set(ctx, cacheKey, data, 10*time.Minute)
+
+	return &u, nil
 }
 
 func (r *userRepo) GetByUsername(username string) (*user.User, error) {
@@ -36,11 +63,19 @@ func (r *userRepo) GetByEmail(email string) (*user.User, error) {
 }
 
 func (r *userRepo) Update(u *user.User) error {
-	return r.db.Save(u).Error
+	err := r.db.Save(u).Error
+	if err == nil {
+		r.rdb.Del(context.Background(), fmt.Sprintf("user:%d", u.ID))
+	}
+	return err
 }
 
 func (r *userRepo) UpdateStatus(id uint, status string) error {
-	return r.db.Model(&user.User{}).Where("id = ?", id).Update("status", status).Error
+	err := r.db.Model(&user.User{}).Where("id = ?", id).Update("status", status).Error
+	if err == nil {
+		r.rdb.Del(context.Background(), fmt.Sprintf("user:%d", id))
+	}
+	return err
 }
 
 func (r *userRepo) Search(query string) ([]user.User, error) {

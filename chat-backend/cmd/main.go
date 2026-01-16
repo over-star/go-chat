@@ -6,9 +6,11 @@ import (
 	"chat-backend/internal/domain/room"
 	"chat-backend/internal/domain/user"
 	"chat-backend/pkg/logger"
+	"context"
 	"fmt"
 	"log"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
@@ -26,8 +28,11 @@ func main() {
 	// 3. Init DB
 	db := initDB()
 
+	// 3.1 Init Redis
+	rdb := initRedis()
+
 	// 4. Initialize App using Wire
-	application, cleanup, err := wire.InitializeApp(db)
+	application, cleanup, err := wire.InitializeApp(db, rdb)
 	if err != nil {
 		logger.L.Fatal("failed to initialize app", zap.Error(err))
 	}
@@ -87,6 +92,24 @@ func initLogger() {
 	logger.Init(cfg)
 }
 
+func initRedis() *redis.Client {
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("%s:%s", viper.GetString("redis.host"), viper.GetString("redis.port")),
+		Password: viper.GetString("redis.password"),
+		DB:       viper.GetInt("redis.db"),
+	})
+
+	// Test connection
+	_, err := rdb.Ping(context.Background()).Result()
+	if err != nil {
+		panic(err)
+		//logger.L.Error("failed to connect to redis", zap.Error(err))
+		// Don't fatal here, maybe redis is optional? Actually for IM optimization it's required.
+		// logger.L.Fatal("failed to connect to redis", zap.Error(err))
+	}
+	return rdb
+}
+
 func initDB() *gorm.DB {
 	dbUser := viper.GetString("db.user")
 	dbPass := viper.GetString("db.password")
@@ -99,7 +122,8 @@ func initDB() *gorm.DB {
 	)
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
-		logger.L.Fatal("failed to connect to database", zap.Error(err))
+		panic(err)
+		//logger.L.Fatal("failed to connect to database", zap.Error(err))
 	}
 
 	// Auto Migrate

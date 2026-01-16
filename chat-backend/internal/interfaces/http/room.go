@@ -4,8 +4,10 @@ import (
 	"chat-backend/internal/app/command"
 	"chat-backend/internal/domain/chat"
 	"chat-backend/internal/domain/room"
+	"chat-backend/internal/interfaces/ws"
 	"chat-backend/pkg/utils"
 	"chat-backend/pkg/xerror"
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
@@ -17,10 +19,11 @@ import (
 type RoomHandler struct {
 	roomApp *command.RoomHandler
 	db      *gorm.DB
+	hub     *ws.Hub
 }
 
-func NewRoomHandler(roomApp *command.RoomHandler, db *gorm.DB) *RoomHandler {
-	return &RoomHandler{roomApp: roomApp, db: db}
+func NewRoomHandler(roomApp *command.RoomHandler, db *gorm.DB, hub *ws.Hub) *RoomHandler {
+	return &RoomHandler{roomApp: roomApp, db: db, hub: hub}
 }
 
 func (h *RoomHandler) CreateRoom(c *gin.Context) {
@@ -40,7 +43,18 @@ func (h *RoomHandler) CreateRoom(c *gin.Context) {
 		utils.Error(c, http.StatusInternalServerError, err)
 		return
 	}
-	utils.Success(c, rm.ToResponse())
+
+	// Notify members via WebSocket
+	resp := rm.ToResponse()
+	notification, _ := json.Marshal(map[string]interface{}{
+		"type": "room_created",
+		"data": map[string]interface{}{
+			"room": resp,
+		},
+	})
+	h.hub.PublishToRedis(rm.ID, "room_created", notification)
+
+	utils.Success(c, resp)
 }
 
 func (h *RoomHandler) GetRooms(c *gin.Context) {

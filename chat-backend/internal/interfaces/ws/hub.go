@@ -159,7 +159,7 @@ func (h *Hub) handleIncomingMessage(client *Client, raw []byte, msg map[string]i
 	}
 }
 
-func (h *Hub) publishToRedis(roomID uint, msgType string, payload []byte) {
+func (h *Hub) PublishToRedis(roomID uint, msgType string, payload []byte) {
 	data, _ := json.Marshal(map[string]interface{}{
 		"room_id": roomID,
 		"type":    msgType,
@@ -223,7 +223,7 @@ func (h *Hub) handleChatMessage(client *Client, msg map[string]interface{}) {
 	})
 
 	// Publish to Redis instead of direct broadcast
-	h.publishToRedis(roomID, "message", response)
+	h.PublishToRedis(roomID, "message", response)
 }
 
 func (h *Hub) handleTypingStatus(client *Client, msg map[string]interface{}) {
@@ -237,7 +237,7 @@ func (h *Hub) handleTypingStatus(client *Client, msg map[string]interface{}) {
 	})
 
 	// Publish to Redis instead of direct broadcast
-	h.publishToRedis(roomID, "typing", response)
+	h.PublishToRedis(roomID, "typing", response)
 }
 
 func (h *Hub) handleReadReceipt(client *Client, msg map[string]interface{}) {
@@ -262,7 +262,7 @@ func (h *Hub) BroadcastReadReceipt(roomID uint, lastReadMessageID uint, userID u
 	})
 
 	// Publish to Redis instead of direct broadcast
-	h.publishToRedis(roomID, "read_receipt", response)
+	h.PublishToRedis(roomID, "read_receipt", response)
 }
 
 func (h *Hub) SendToUser(userID uint, message []byte) {

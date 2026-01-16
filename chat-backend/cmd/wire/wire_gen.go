@@ -26,10 +26,10 @@ func InitializeApp(db *gorm.DB, rdb *redis.Client) (*app.App, func(), error) {
 	httpUserHandler := http.NewUserHandler(userHandler)
 	roomRepository := persistence.NewRoomRepository(db, rdb)
 	roomHandler := command.NewRoomHandler(roomRepository)
-	httpRoomHandler := http.NewRoomHandler(roomHandler, db)
 	chatRepository := persistence.NewMessageRepository(db)
-	messageHandler := command.NewMessageHandler(chatRepository)
 	hub := ws.NewHub(chatRepository, roomRepository, repository, rdb)
+	httpRoomHandler := http.NewRoomHandler(roomHandler, db, hub)
+	messageHandler := command.NewMessageHandler(chatRepository)
 	httpMessageHandler := http.NewMessageHandler(messageHandler, hub)
 	routerOptions := http.RouterOptions{
 		AuthHandler:    httpAuthHandler,

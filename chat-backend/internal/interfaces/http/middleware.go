@@ -64,6 +64,16 @@ func LoggerMiddleware() gin.HandlerFunc {
 		if skipBody {
 			reqBody = "<binary data skipped>"
 			respBody = "<response skipped>"
+		} else {
+			// Truncate request and response bodies to 200 characters
+			reqRunes := []rune(reqBody)
+			if len(reqRunes) > 200 {
+				reqBody = string(reqRunes[:200]) + "..."
+			}
+			respRunes := []rune(respBody)
+			if len(respRunes) > 200 {
+				respBody = string(respRunes[:200]) + "..."
+			}
 		}
 
 		logger.L.Info("HTTP Request",

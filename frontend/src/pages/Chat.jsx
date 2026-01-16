@@ -205,6 +205,13 @@ function Chat() {
 
                     return updatedRooms
                 })
+            } else if (lastMessage.type === 'room_created' && lastMessage.data?.room) {
+                const newRoom = lastMessage.data.room
+                setRooms(prev => {
+                    // Avoid duplicate rooms
+                    if (prev.some(r => r.id === newRoom.id)) return prev
+                    return [newRoom, ...prev]
+                })
             } else if (lastMessage.type === 'read_receipt' && lastMessage.data) {
                 const { room_id, last_read_message_id, user_id } = lastMessage.data
                 setRooms(prev => prev.map(r => {

@@ -332,14 +332,14 @@ function Chat() {
 
     if (loading || loadingRooms) {
         return (
-            <div className="h-screen flex items-center justify-center bg-background">
+            <div className="h-full flex items-center justify-center bg-background">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
         )
     }
 
     return (
-        <div className="h-screen flex bg-background overflow-hidden">
+        <div className="h-full flex bg-background overflow-hidden">
             {/* Sidebar */}
             <div className={cn(
                 "h-full border-r transition-all duration-300 ease-in-out shrink-0",

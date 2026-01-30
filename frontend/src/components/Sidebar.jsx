@@ -138,11 +138,18 @@ function Sidebar({ rooms, selectedRoom, onRoomSelect, onRoomCreated, onRoomDelet
 
     const handleDeleteRoom = async (room) => {
         const isCreator = user?.id === room.creator_id
-        const action = (room.type === 'group' && isCreator) ? '删除' : '离开'
+        const isPrivate = room.type === 'private'
+        
+        let action = '离开'
+        if (isPrivate) {
+            action = '移除'
+        } else if (isCreator) {
+            action = '删除'
+        }
         
         setConfirmConfig({
             title: `${action}聊天`,
-            description: `确定要${action}该聊天吗？`,
+            description: isPrivate ? `确定要将该聊天从列表移除吗？之前的聊天记录将被保留。` : `确定要${action}该聊天吗？`,
             onConfirm: async () => {
                 try {
                     setLoading(true)
@@ -560,7 +567,7 @@ function RoomItem({ room, isSelected, onClick, onDelete, currentUser }) {
                     e.stopPropagation()
                     onDelete()
                 }}
-                title={room.type === 'group' && isCreator ? "解散群聊" : "退出聊天"}
+                title={room.type === 'group' ? (isCreator ? "解散群聊" : "退出群聊") : "移除聊天"}
             >
                 <Trash2 className="h-4 w-4" />
             </Button>

@@ -31,6 +31,7 @@ type RoomMember struct {
 	RoomID   uint      `gorm:"primaryKey" json:"room_id"`
 	UserID   uint      `gorm:"primaryKey" json:"user_id"`
 	JoinedAt time.Time `json:"joined_at"`
+	IsHidden bool      `gorm:"default:false" json:"is_hidden"`
 }
 
 type RoomResponse struct {
@@ -67,8 +68,10 @@ type Repository interface {
 	Create(room *Room) error
 	GetByID(id uint) (*Room, error)
 	GetByUserID(userID uint) ([]Room, error)
+	GetPrivateRoomBetweenUsers(userID1, userID2 uint) (*Room, error)
 	Update(room *Room) error
 	Delete(id uint) error
 	AddMember(roomID uint, userID uint) error
 	RemoveMember(roomID uint, userID uint) error
+	SetHidden(roomID uint, userID uint, hidden bool) error
 }

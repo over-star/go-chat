@@ -25,17 +25,12 @@ func (h *RoomHandler) CreateRoom(creatorID uint, name string, roomType string, m
 		}
 
 		if friendID > 0 {
-			rooms, err := h.roomRepo.GetByUserID(creatorID)
+			rm, err := h.roomRepo.GetPrivateRoomBetweenUsers(creatorID, friendID)
 			if err == nil {
-				for _, r := range rooms {
-					if r.Type == room.RoomTypePrivate {
-						for _, m := range r.Members {
-							if m.ID == friendID {
-								return &r, nil
-							}
-						}
-					}
-				}
+				// Unhide for both users if it exists
+				h.roomRepo.SetHidden(rm.ID, creatorID, false)
+				h.roomRepo.SetHidden(rm.ID, friendID, false)
+				return rm, nil
 			}
 		}
 	}
@@ -79,7 +74,22 @@ func (h *RoomHandler) GetRoom(roomID uint) (*room.Room, error) {
 	return rm, nil
 }
 
-func (h *RoomHandler) DeleteRoom(roomID uint) error {
+func (h *RoomHandler) DeleteRoom(roomID uint, userID uint) error {
+	rm, err := h.roomRepo.GetByID(roomID)
+	if err != nil {
+		return xerror.New(xerror.CodeNotFound, "room not found")
+	}
+
+	if rm.Type == room.RoomTypePrivate {
+		// For private rooms, just hide it for the user
+		return h.roomRepo.SetHidden(roomID, userID, true)
+	}
+
+	// For group rooms, check if creator
+	if rm.CreatorID != userID {
+		return xerror.New(xerror.CodePermissionDenied, "only creator can delete group room")
+	}
+
 	return h.roomRepo.Delete(roomID)
 }
 
@@ -122,5 +132,14 @@ func (h *RoomHandler) RemoveMember(roomID uint, operatorID uint, userID uint) er
 }
 
 func (h *RoomHandler) LeaveRoom(roomID, userID uint) error {
+	rm, err := h.roomRepo.GetByID(roomID)
+	if err != nil {
+		return xerror.New(xerror.CodeNotFound, "room not found")
+	}
+
+	if rm.Type == room.RoomTypePrivate {
+		return h.roomRepo.SetHidden(roomID, userID, true)
+	}
+
 	return h.roomRepo.RemoveMember(roomID, userID)
 }

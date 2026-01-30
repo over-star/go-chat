@@ -3,6 +3,7 @@ package main
 import (
 	"chat-backend/cmd/wire"
 	"chat-backend/internal/domain/chat"
+	"chat-backend/internal/domain/market"
 	"chat-backend/internal/domain/room"
 	"chat-backend/internal/domain/user"
 	"chat-backend/pkg/logger"
@@ -135,6 +136,7 @@ func initDB() *gorm.DB {
 		&room.RoomMember{},
 		&chat.Message{},
 		&chat.ReadReceipt{},
+		&market.MarketPrice{},
 	); err != nil {
 		logger.L.Warn("Auto migration warning", zap.Error(err))
 	}

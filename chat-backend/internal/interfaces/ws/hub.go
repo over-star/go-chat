@@ -208,6 +208,24 @@ func (h *Hub) handleChatMessage(client *Client, msg map[string]interface{}) {
 		return
 	}
 
+	// Unhide room for members when a new message is sent
+	rm, err := h.roomRepo.GetByID(roomID)
+	if err == nil {
+		for _, member := range rm.Members {
+			h.roomRepo.SetHidden(roomID, member.ID, false)
+		}
+		
+		// Notify members to ensure room appears in their list
+		resp := rm.ToResponse()
+		notification, _ := json.Marshal(map[string]interface{}{
+			"type": "room_created",
+			"data": map[string]interface{}{
+				"room": resp,
+			},
+		})
+		h.PublishToRedis(roomID, "room_created", notification)
+	}
+
 	// Fetch message again to get sender info
 	savedMsg, err := h.messageRepo.GetByID(chatMsg.ID)
 	if err != nil {

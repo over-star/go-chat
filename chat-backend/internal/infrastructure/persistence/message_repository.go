@@ -2,8 +2,9 @@ package persistence
 
 import (
 	"chat-backend/internal/domain/chat"
-	"gorm.io/gorm"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type messageRepo struct {

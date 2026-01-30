@@ -31,11 +31,15 @@ func InitializeApp(db *gorm.DB, rdb *redis.Client) (*app.App, func(), error) {
 	httpRoomHandler := http.NewRoomHandler(roomHandler, db, hub)
 	messageHandler := command.NewMessageHandler(chatRepository)
 	httpMessageHandler := http.NewMessageHandler(messageHandler, hub)
+	marketRepository := persistence.NewMarketRepository(db)
+	marketHandler := command.NewMarketHandler(marketRepository)
+	httpMarketHandler := http.NewMarketHandler(marketHandler)
 	routerOptions := http.RouterOptions{
 		AuthHandler:    httpAuthHandler,
 		UserHandler:    httpUserHandler,
 		RoomHandler:    httpRoomHandler,
 		MessageHandler: httpMessageHandler,
+		MarketHandler:  httpMarketHandler,
 		Hub:            hub,
 	}
 	engine := http.NewRouter(routerOptions)

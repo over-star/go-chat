@@ -55,11 +55,27 @@ func (r *roomRepo) GetByUserID(userID uint) ([]room.Room, error) {
 	var rooms []room.Room
 	err := r.db.Model(&room.Room{}).
 		Joins("JOIN room_members ON room_members.room_id = rooms.id").
-		Where("room_members.user_id = ?", userID).
+		Where("room_members.user_id = ? AND room_members.is_hidden = ?", userID, false).
 		Preload("Members").
 		Order("updated_at DESC").
 		Find(&rooms).Error
 	return rooms, err
+}
+
+func (r *roomRepo) GetPrivateRoomBetweenUsers(userID1, userID2 uint) (*room.Room, error) {
+	var rm room.Room
+	err := r.db.Model(&room.Room{}).
+		Joins("JOIN room_members rm1 ON rm1.room_id = rooms.id").
+		Joins("JOIN room_members rm2 ON rm2.room_id = rooms.id").
+		Where("rooms.type = ?", room.RoomTypePrivate).
+		Where("rm1.user_id = ?", userID1).
+		Where("rm2.user_id = ?", userID2).
+		Preload("Members").
+		First(&rm).Error
+	if err != nil {
+		return nil, err
+	}
+	return &rm, nil
 }
 
 func (r *roomRepo) Update(rm *room.Room) error {
@@ -84,4 +100,10 @@ func (r *roomRepo) RemoveMember(roomID uint, userID uint) error {
 		r.rdb.Del(context.Background(), fmt.Sprintf("room:%d", roomID))
 	}
 	return err
+}
+
+func (r *roomRepo) SetHidden(roomID uint, userID uint, hidden bool) error {
+	return r.db.Model(&room.RoomMember{}).
+		Where("room_id = ? AND user_id = ?", roomID, userID).
+		Update("is_hidden", hidden).Error
 }

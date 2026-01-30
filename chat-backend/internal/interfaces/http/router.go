@@ -17,6 +17,7 @@ type RouterOptions struct {
 	UserHandler    *UserHandler
 	RoomHandler    *RoomHandler
 	MessageHandler *MessageHandler
+	MarketHandler   *MarketHandler
 	Hub            *ws.Hub
 }
 
@@ -76,6 +77,10 @@ func NewRouter(opts RouterOptions) *gin.Engine {
 			protected.GET("/rooms/:id/messages", opts.MessageHandler.GetMessages)
 			protected.POST("/messages/upload", opts.MessageHandler.UploadFile)
 			protected.POST("/messages/read", opts.MessageHandler.MarkAsRead)
+
+			// Market routes
+			protected.GET("/market/prices", opts.MarketHandler.GetPrices)
+			protected.GET("/market/history", opts.MarketHandler.GetHistory)
 		}
 	}
 

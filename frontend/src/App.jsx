@@ -6,6 +6,8 @@ import { Toaster } from './components/ui/toaster'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Chat from './pages/Chat'
+import Dashboard from './pages/Dashboard'
+import MainLayout from './components/MainLayout'
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -35,11 +37,23 @@ function App() {
                                 path="/chat/*"
                                 element={
                                     <ProtectedRoute>
-                                        <Chat />
+                                        <MainLayout>
+                                            <Chat />
+                                        </MainLayout>
                                     </ProtectedRoute>
                                 }
                             />
-                            <Route path="/" element={<Navigate to="/chat" replace />} />
+                            <Route
+                                path="/dashboard"
+                                element={
+                                    <ProtectedRoute>
+                                        <MainLayout>
+                                            <Dashboard />
+                                        </MainLayout>
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route path="/" element={<Navigate to="/dashboard" replace />} />
                         </Routes>
                         <Toaster />
                     </TooltipProvider>

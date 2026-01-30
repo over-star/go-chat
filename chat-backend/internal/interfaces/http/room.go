@@ -151,23 +151,11 @@ func (h *RoomHandler) DeleteRoom(c *gin.Context) {
 	roomIDStr := c.Param("id")
 	roomID, _ := strconv.ParseUint(roomIDStr, 10, 32)
 
-	// Verify creator
-	rm, err := h.roomApp.GetRoom(uint(roomID))
-	if err != nil {
-		utils.Error(c, http.StatusNotFound, err)
-		return
-	}
-
-	if rm.CreatorID != userID {
-		utils.ErrorWithCode(c, http.StatusForbidden, xerror.CodePermissionDenied, "only creator can delete room")
-		return
-	}
-
-	if err := h.roomApp.DeleteRoom(uint(roomID)); err != nil {
+	if err := h.roomApp.DeleteRoom(uint(roomID), userID); err != nil {
 		utils.Error(c, http.StatusInternalServerError, err)
 		return
 	}
-	utils.Message(c, "room deleted")
+	utils.Message(c, "room deleted or hidden")
 }
 
 func (h *RoomHandler) AddMembers(c *gin.Context) {
